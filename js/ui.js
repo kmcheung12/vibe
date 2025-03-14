@@ -15,14 +15,35 @@ class UI {
         this.quitButton = document.getElementById('quitBtn');
         this.currentAnswer = '';
         this.originalProblem = '';
+        this.isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
         // Initialize event listeners
-        this.initializeNumberPad();
+        this.initializeElements();
+        this.initializeStyles();
+        this.initializeEventListeners();
         this.initializeKeyboardSupport();
         this.initializeAnimations();
         this.initializeModeButtons();
         this.initializeGameControls();
         this.initializeQuitButton();
+
+        // Hide number pad on mobile devices
+        if (this.isMobileDevice) {
+            const numberPad = document.getElementById('numberPad');
+            if (numberPad) numberPad.classList.add('hidden');
+        }
+    }
+
+    initializeElements() {
+        // Initialize UI elements
+    }
+
+    initializeStyles() {
+        // Initialize styles
+    }
+
+    initializeEventListeners() {
+        // Initialize event listeners
     }
 
     initializeGameControls() {
@@ -73,6 +94,11 @@ class UI {
                     hiddenInput.blur();
                 } else {
                     hiddenInput.focus();
+                    if (this.isMobileDevice) {
+                        // Ensure virtual keyboard shows up on mobile
+                        hiddenInput.readOnly = false;
+                        hiddenInput.click();
+                    }
                 }
             });
         });
@@ -82,43 +108,54 @@ class UI {
         document.addEventListener('click', () => {
             if (!this.gameScreen.classList.contains('hidden')) {
                 hiddenInput.focus();
+                if (this.isMobileDevice) {
+                    hiddenInput.click();
+                }
             }
         });
 
         // Handle input events for numbers
         hiddenInput.addEventListener('input', (e) => {
-            const input = e.data;
+            // Get the last character entered
+            const input = e.target.value.slice(-1);
             if (/^[0-9]$/.test(input)) {
                 if (this.currentAnswer.length < 10) {
-                    const button = document.querySelector(`.num-btn[data-key="${input}"]`);
-                    if (button) {
-                        button.classList.add('pressed');
-                        setTimeout(() => button.classList.remove('pressed'), 100);
+                    if (!this.isMobileDevice) {
+                        const button = document.querySelector(`.num-btn[data-key="${input}"]`);
+                        if (button) {
+                            button.classList.add('pressed');
+                            setTimeout(() => button.classList.remove('pressed'), 100);
+                        }
                     }
                     this.currentAnswer += input;
                     this.updateProblemDisplay();
                     document.dispatchEvent(new CustomEvent('answer-check'));
                 }
             }
-            hiddenInput.value = ''; // Clear the input for next key
+            // Clear the input for next key, but keep focus
+            hiddenInput.value = '';
         });
 
         // Handle control keys
         hiddenInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' || e.code === 'NumpadEnter') {
-                const button = document.querySelector('.num-btn.enter');
-                if (button) {
-                    button.classList.add('pressed');
-                    setTimeout(() => button.classList.remove('pressed'), 100);
+                if (!this.isMobileDevice) {
+                    const button = document.querySelector('.num-btn.enter');
+                    if (button) {
+                        button.classList.add('pressed');
+                        setTimeout(() => button.classList.remove('pressed'), 100);
+                    }
                 }
                 document.dispatchEvent(new CustomEvent('answer-submit'));
                 e.preventDefault();
             }
             else if (e.key === 'Backspace' || e.key === 'Delete') {
-                const button = document.querySelector('.num-btn.erase');
-                if (button) {
-                    button.classList.add('pressed');
-                    setTimeout(() => button.classList.remove('pressed'), 100);
+                if (!this.isMobileDevice) {
+                    const button = document.querySelector('.num-btn.erase');
+                    if (button) {
+                        button.classList.add('pressed');
+                        setTimeout(() => button.classList.remove('pressed'), 100);
+                    }
                 }
                 this.currentAnswer = this.currentAnswer.slice(0, -1);
                 this.updateProblemDisplay();
