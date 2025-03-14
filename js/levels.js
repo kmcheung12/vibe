@@ -28,20 +28,20 @@ const CONCEPTS = {
         type: 'sequence_one',
         generator: () => {
             const isAscending = Math.random() < 0.5;
-            const step = 1;
+            const multiple = 1;
+            const limit = 100;
             const len = 4;
-            const offset = step * len;
-            // For ascending: start + 4 <= 100
-            // For descending: start - 4 >= 0
+            const offset = multiple * len;
             const start = isAscending 
-                ? Math.floor(Math.random() * (100 - offset))  // 0 to 96
-                : Math.floor(Math.random() * (100 - offset)) + offset; // 4 to 100
-            const sequence = Array.from({length: 4}, (_, i) => 
-                isAscending ? start + i : start - i
+                ? Math.floor(Math.random() * (limit/multiple - len)) * multiple  // 0 to 96
+                : offset + (Math.floor(Math.random() * (limit/multiple - len)) * multiple); // 4 to 100
+            const sequence = Array.from({length: len}, (_, i) => 
+                isAscending ? start + (i * multiple) : start - (i * multiple)
             );
             return {
-                question: `What comes next? ${sequence.join(', ')}, ?`,
-                answer: isAscending ? start + offset : start - offset
+                question: `What comes next in this ${isAscending ? 'increasing' : 'decreasing'} sequence? ${sequence.join(', ')}, ?`,
+                answer: isAscending ? start + (len * multiple) : start - (len * multiple),
+                explanation: `This is a sequence that ${isAscending ? 'increases' : 'decreases'} by ${multiple} each time. Each number is ${isAscending ? 'adding' : 'subtracting'} ${multiple} to get the next number.`
             };
         }
     },
@@ -49,20 +49,20 @@ const CONCEPTS = {
         type: 'sequence_two',
         generator: () => {
             const isAscending = Math.random() < 0.5;
-            const step = 2;
+            const multiple = 2;
+            const limit = 100;
             const len = 4;
-            const offset = step * len;
-            // For ascending: start + (4 * 2) <= 100
-            // For descending: start - (4 * 2) >= 0
+            const offset = multiple * len;
             const start = isAscending 
-                ? Math.floor(Math.random() * (100 - offset))  // 0 to 92
-                : Math.floor(Math.random() * (100 - offset)) + offset; // 8 to 100
-            const sequence = Array.from({length: 4}, (_, i) => 
-                isAscending ? start + (i * step) : start - (i * step)
+                ? Math.floor(Math.random() * (limit/multiple - len)) * multiple  // 0 to 92
+                : offset + (Math.floor(Math.random() * (limit/multiple - len)) * multiple); // 8 to 100
+            const sequence = Array.from({length: len}, (_, i) => 
+                isAscending ? start + (i * multiple) : start - (i * multiple)
             );
             return {
-                question: `What comes next? ${sequence.join(', ')}, ?`,
-                answer: isAscending ? start + offset : start - offset
+                question: `What comes next in this ${isAscending ? 'increasing' : 'decreasing'} sequence? ${sequence.join(', ')}, ?`,
+                answer: isAscending ? start + (len * multiple) : start - (len * multiple),
+                explanation: `This is a sequence of even numbers that ${isAscending ? 'increases' : 'decreases'} by ${multiple} each time. Each number is ${isAscending ? 'adding' : 'subtracting'} ${multiple} to get the next number.`
             };
         }
     },
@@ -70,20 +70,20 @@ const CONCEPTS = {
         type: 'sequence_five',
         generator: () => {
             const isAscending = Math.random() < 0.5;
-            const step = 5;
+            const multiple = 5;
+            const limit = 100;
             const len = 4;
-            const offset = step * len;
-            // For ascending: start + (4 * 5) <= 100
-            // For descending: start - (4 * 5) >= 0
+            const offset = multiple * len;
             const start = isAscending 
-                ? Math.floor(Math.random() * (100 - offset))  // 0 to 80
-                : Math.floor(Math.random() * (100 - offset)) + offset; // 20 to 100
-            const sequence = Array.from({length: 4}, (_, i) => 
-                isAscending ? start + (i * step) : start - (i * step)
+                ? Math.floor(Math.random() * (limit/multiple - len)) * multiple  // 0 to 80
+                : offset + (Math.floor(Math.random() * (limit/multiple - len)) * multiple); // 20 to 100
+            const sequence = Array.from({length: len}, (_, i) => 
+                isAscending ? start + (i * multiple) : start - (i * multiple)
             );
             return {
-                question: `What comes next? ${sequence.join(', ')}, ?`,
-                answer: isAscending ? start + offset : start - offset
+                question: `What comes next in this ${isAscending ? 'increasing' : 'decreasing'} sequence? ${sequence.join(', ')}, ?`,
+                answer: isAscending ? start + (len * multiple) : start - (len * multiple),
+                explanation: `This is a sequence that counts by ${multiple}s. Each number is ${isAscending ? 'adding' : 'subtracting'} ${multiple} to get the next number.`
             };
         }
     },
@@ -91,20 +91,20 @@ const CONCEPTS = {
         type: 'sequence_ten',
         generator: () => {
             const isAscending = Math.random() < 0.5;
-            const step = 10;
+            const multiple = 10;
+            const limit = 100;
             const len = 4;
-            const offset = step * len;
-            // For ascending: start + (4 * 10) <= 100
-            // For descending: start - (4 * 10) >= 0
+            const offset = multiple * len;
             const start = isAscending 
-                ? Math.floor(Math.random() * (100 - offset))  // 0 to 60
-                : Math.floor(Math.random() * (100 - offset)) + offset; // 40 to 100
-            const sequence = Array.from({length: 4}, (_, i) => 
-                isAscending ? start + (i * step) : start - (i * step)
+                ? Math.floor(Math.random() * (limit/multiple - len)) * multiple  // 0 to 60
+                : offset + (Math.floor(Math.random() * (limit/multiple - len)) * multiple); // 40 to 100
+            const sequence = Array.from({length: len}, (_, i) => 
+                isAscending ? start + (i * multiple) : start - (i * multiple)
             );
             return {
-                question: `What comes next? ${sequence.join(', ')}, ?`,
-                answer: isAscending ? start + offset : start - offset
+                question: `What comes next in this ${isAscending ? 'increasing' : 'decreasing'} sequence? ${sequence.join(', ')}, ?`,
+                answer: isAscending ? start + (len * multiple) : start - (len * multiple),
+                explanation: `This is a sequence that counts by ${multiple}s. Each number is ${isAscending ? 'adding' : 'subtracting'} ${multiple} to get the next number.`
             };
         }
     },
@@ -178,6 +178,40 @@ const CONCEPTS = {
                 answer: price * quantity
             };
         }
+    },
+    numberBondsTen: {
+        type: 'number_bonds_ten',
+        generator: () => {
+            const total = 10;
+            const known = Math.floor(Math.random() * 11); // 0 to 10
+            const unknown = total - known;
+            const isFirstNumber = Math.random() < 0.5;
+            
+            return {
+                question: isFirstNumber 
+                    ? `_ + ${known} = ${total}`
+                    : `${known} + _ = ${total}`,
+                answer: unknown,
+                explanation: `${unknown} + ${known} = ${total} or ${known} + ${unknown} = ${total}. These numbers add up to ${total}.`
+            };
+        }
+    },
+    numberBondsTwenty: {
+        type: 'number_bonds_twenty',
+        generator: () => {
+            const total = 20;
+            const known = Math.floor(Math.random() * 21); // 0 to 20
+            const unknown = total - known;
+            const isFirstNumber = Math.random() < 0.5;
+            
+            return {
+                question: isFirstNumber 
+                    ? `_ + ${known} = ${total}`
+                    : `${known} + _ = ${total}`,
+                answer: unknown,
+                explanation: `${unknown} + ${known} = ${total} or ${known} + ${unknown} = ${total}. These numbers add up to ${total}.`
+            };
+        }
     }
 };
 
@@ -201,9 +235,22 @@ const LEVELS = {
     grade1_3: {
         name: 'Grade 1 - 3',
         problems: [
+            CONCEPTS.numberBondsTen
+        ]
+    },
+    grade1_4: {
+        name: 'Grade 1 - 4',
+        problems: [
+            CONCEPTS.numberBondsTen,
+            CONCEPTS.numberBondsTwenty
+        ]
+    },
+    grade1_5: {
+        name: 'Grade 1 - 5',
+        problems: [
             CONCEPTS.addition,
             CONCEPTS.subtraction,
-            CONCEPTS.sequenceFive
+            CONCEPTS.numberBondsTwenty
         ]
     },
     grade2_1: {
