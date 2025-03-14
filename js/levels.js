@@ -8,7 +8,11 @@ const CONCEPTS = {
             const num2 = Math.floor(Math.random() * (20 - num1));
             return {
                 question: `${num1} + ${num2} = ?`,
-                answer: num1 + num2
+                answer: num1 + num2,
+                visualization: {
+                    type: 'blocks',
+                    values: { num1, num2 }
+                }
             };
         }
     },
@@ -20,7 +24,11 @@ const CONCEPTS = {
             const num2 = Math.floor(Math.random() * num1);
             return {
                 question: `${num1} - ${num2} = ?`,
-                answer: num1 - num2
+                answer: num1 - num2,
+                visualization: {
+                    type: 'blocks',
+                    values: { num1, num2 }
+                }
             };
         }
     },
@@ -41,7 +49,15 @@ const CONCEPTS = {
             return {
                 question: `What comes next in this ${isAscending ? 'increasing' : 'decreasing'} sequence? ${sequence.join(', ')}, ?`,
                 answer: isAscending ? start + (len * multiple) : start - (len * multiple),
-                explanation: `This is a sequence that ${isAscending ? 'increases' : 'decreases'} by ${multiple} each time. Each number is ${isAscending ? 'adding' : 'subtracting'} ${multiple} to get the next number.`
+                explanation: `This is a sequence that ${isAscending ? 'increases' : 'decreases'} by ${multiple} each time. Each number is ${isAscending ? 'adding' : 'subtracting'} ${multiple} to get the next number.`,
+                visualization: {
+                    type: 'numberLine',
+                    values: {
+                        sequence,
+                        stepSize: multiple,
+                        isAscending
+                    }
+                }
             };
         }
     },
@@ -62,7 +78,15 @@ const CONCEPTS = {
             return {
                 question: `What comes next in this ${isAscending ? 'increasing' : 'decreasing'} sequence? ${sequence.join(', ')}, ?`,
                 answer: isAscending ? start + (len * multiple) : start - (len * multiple),
-                explanation: `This is a sequence of even numbers that ${isAscending ? 'increases' : 'decreases'} by ${multiple} each time. Each number is ${isAscending ? 'adding' : 'subtracting'} ${multiple} to get the next number.`
+                explanation: `This is a sequence of even numbers that ${isAscending ? 'increases' : 'decreases'} by ${multiple} each time. Each number is ${isAscending ? 'adding' : 'subtracting'} ${multiple} to get the next number.`,
+                visualization: {
+                    type: 'numberLine',
+                    values: {
+                        sequence,
+                        stepSize: multiple,
+                        isAscending
+                    }
+                }
             };
         }
     },
@@ -83,7 +107,15 @@ const CONCEPTS = {
             return {
                 question: `What comes next in this ${isAscending ? 'increasing' : 'decreasing'} sequence? ${sequence.join(', ')}, ?`,
                 answer: isAscending ? start + (len * multiple) : start - (len * multiple),
-                explanation: `This is a sequence that counts by ${multiple}s. Each number is ${isAscending ? 'adding' : 'subtracting'} ${multiple} to get the next number.`
+                explanation: `This is a sequence that counts by ${multiple}s. Each number is ${isAscending ? 'adding' : 'subtracting'} ${multiple} to get the next number.`,
+                visualization: {
+                    type: 'numberLine',
+                    values: {
+                        sequence,
+                        stepSize: multiple,
+                        isAscending
+                    }
+                }
             };
         }
     },
@@ -104,7 +136,15 @@ const CONCEPTS = {
             return {
                 question: `What comes next in this ${isAscending ? 'increasing' : 'decreasing'} sequence? ${sequence.join(', ')}, ?`,
                 answer: isAscending ? start + (len * multiple) : start - (len * multiple),
-                explanation: `This is a sequence that counts by ${multiple}s. Each number is ${isAscending ? 'adding' : 'subtracting'} ${multiple} to get the next number.`
+                explanation: `This is a sequence that counts by ${multiple}s. Each number is ${isAscending ? 'adding' : 'subtracting'} ${multiple} to get the next number.`,
+                visualization: {
+                    type: 'numberLine',
+                    values: {
+                        sequence,
+                        stepSize: multiple,
+                        isAscending
+                    }
+                }
             };
         }
     },
@@ -116,7 +156,11 @@ const CONCEPTS = {
             const num2 = Math.floor(Math.random() * 11);
             return {
                 question: `${num1} × ${num2} = ?`,
-                answer: num1 * num2
+                answer: num1 * num2,
+                visualization: {
+                    type: 'arrays',
+                    values: { num1, num2 }
+                }
             };
         }
     },
@@ -128,7 +172,11 @@ const CONCEPTS = {
             const dividend = divisor * quotient;
             return {
                 question: `${dividend} ÷ ${divisor} = ?`,
-                answer: quotient
+                answer: quotient,
+                visualization: {
+                    type: 'groups',
+                    values: { divisor, quotient }
+                }
             };
         }
     },
@@ -139,7 +187,11 @@ const CONCEPTS = {
             const cents = Math.floor(Math.random() * 100);
             return {
                 question: `How many cents in $${dollars}.${cents.toString().padStart(2, '0')}?`,
-                answer: dollars * 100 + cents
+                answer: dollars * 100 + cents,
+                visualization: {
+                    type: 'money',
+                    values: { dollars, cents }
+                }
             };
         }
     },
@@ -151,7 +203,11 @@ const CONCEPTS = {
             const wholeNumber = Math.floor(Math.random() * 5) + 1;
             return {
                 question: `${wholeNumber} + ${numerator}/${denominator} = ? (Convert to decimal, round to 1 decimal place)`,
-                answer: Number(wholeNumber + numerator/denominator).toFixed(1)
+                answer: Number(wholeNumber + numerator/denominator).toFixed(1),
+                visualization: {
+                    type: 'fractions',
+                    values: { numerator, denominator, wholeNumber }
+                }
             };
         }
     },
@@ -162,7 +218,11 @@ const CONCEPTS = {
             const minutes = Math.floor(Math.random() * 60);
             return {
                 question: `If it's ${hours}:${minutes.toString().padStart(2, '0')}, how many minutes past ${hours}:00?`,
-                answer: minutes
+                answer: minutes,
+                visualization: {
+                    type: 'clock',
+                    values: { hours, minutes }
+                }
             };
         }
     },
@@ -175,7 +235,11 @@ const CONCEPTS = {
             const quantity = Math.floor(Math.random() * 10) + 1;
             return {
                 question: `If one ${item} costs $${price}, how much do ${quantity} ${item} cost?`,
-                answer: price * quantity
+                answer: price * quantity,
+                visualization: {
+                    type: 'groups',
+                    values: { price, quantity }
+                }
             };
         }
     },
@@ -192,7 +256,15 @@ const CONCEPTS = {
                     ? `_ + ${known} = ${total}`
                     : `${known} + _ = ${total}`,
                 answer: unknown,
-                explanation: `${unknown} + ${known} = ${total} or ${known} + ${unknown} = ${total}. These numbers add up to ${total}.`
+                explanation: `${unknown} + ${known} = ${total} or ${known} + ${unknown} = ${total}. These numbers add up to ${total}.`,
+                visualization: {
+                    type: 'blocks',
+                    values: { 
+                        num1: isFirstNumber ? unknown : known,
+                        num2: isFirstNumber ? known : unknown,
+                        total
+                    }
+                }
             };
         }
     },
@@ -209,7 +281,15 @@ const CONCEPTS = {
                     ? `_ + ${known} = ${total}`
                     : `${known} + _ = ${total}`,
                 answer: unknown,
-                explanation: `${unknown} + ${known} = ${total} or ${known} + ${unknown} = ${total}. These numbers add up to ${total}.`
+                explanation: `${unknown} + ${known} = ${total} or ${known} + ${unknown} = ${total}. These numbers add up to ${total}.`,
+                visualization: {
+                    type: 'blocks',
+                    values: { 
+                        num1: isFirstNumber ? unknown : known,
+                        num2: isFirstNumber ? known : unknown,
+                        total
+                    }
+                }
             };
         }
     }

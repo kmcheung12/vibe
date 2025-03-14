@@ -73,6 +73,20 @@
 
             <div class="game-screen hidden" id="gameScreen">
                 <div class="problem-display" id="problemDisplay"></div>
+                <div class="visualization-container" id="visualizationContainer">
+                    <svg class="number-line hidden" id="numberLine" viewBox="0 0 500 100" preserveAspectRatio="xMidYMid meet">
+                        <line class="number-line-base" x1="50" y1="50" x2="450" y2="50" stroke="black" stroke-width="2"/>
+                        <g id="numberLineMarkers"></g>
+                        <g id="numberLineArrows"></g>
+                    </svg>
+                    <div class="blocks-container hidden" id="blocksContainer">
+                        <div class="blocks-row" id="firstNumber"></div>
+                        <div class="operator-symbol">+</div>
+                        <div class="blocks-row" id="secondNumber"></div>
+                        <div class="operator-symbol">=</div>
+                        <div class="blocks-row" id="totalNumber"></div>
+                    </div>
+                </div>
                 <div class="explanation hidden" id="explanation"></div>
                 <div class="answer-input">
                     <input type="text" id="answerInput" readonly>
@@ -127,6 +141,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="js/progress.js"></script>
     <script src="js/levels.js"></script>
+    <script src="js/visualization.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/game.js"></script>
     <script src="js/app.js"></script>

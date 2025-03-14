@@ -2,6 +2,7 @@ class Game {
     constructor() {
         this.ui = new UI();
         this.progressTracker = new ProgressTracker();
+        this.visualization = new Visualization();
         this.currentProblem = null;
         this.correctAnswers = 0;
         this.wrongAttempts = 0;
@@ -69,6 +70,9 @@ class Game {
             this.ui.explanation.textContent = this.currentProblem.explanation;
             this.ui.explanation.classList.remove('hidden');
         }
+
+        // Handle visualization
+        this.visualization.update(this.currentProblem);
     }
 
     autoCheckAnswer() {
