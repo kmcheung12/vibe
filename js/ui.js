@@ -194,6 +194,15 @@ class UI {
                 border-radius: 10px;
                 margin: 10px 0;
             }
+            .checkmark {
+                font-size: 24px;
+                color: green;
+                animation: fadeOut 0.8s;
+            }
+            @keyframes fadeOut {
+                from { opacity: 1; }
+                to { opacity: 0; }
+            }
         `;
         document.head.appendChild(style);
     }
@@ -280,6 +289,7 @@ class UI {
         this.currentAnswer = '';
         this.updateProblemDisplay();
         this.explanation.classList.add('hidden');
+        this.removeCheckmark(); // Ensure any previous checkmark is removed
     }
 
     updateProblemDisplay() {
@@ -330,5 +340,22 @@ class UI {
     shake() {
         this.problemDisplay.classList.add('shake');
         setTimeout(() => this.problemDisplay.classList.remove('shake'), 500);
+    }
+
+    showCheckmark() {
+        this.removeCheckmark(); // Remove any existing checkmark
+        const checkmark = document.createElement('span');
+        checkmark.textContent = '✓';
+        checkmark.className = 'checkmark';
+        this.problemDisplay.appendChild(checkmark);
+        // Checkmark will auto-remove due to CSS animation
+        setTimeout(() => this.removeCheckmark(), 800);
+    }
+
+    removeCheckmark() {
+        const existingCheckmark = this.problemDisplay.querySelector('.checkmark');
+        if (existingCheckmark) {
+            existingCheckmark.remove();
+        }
     }
 }

@@ -77,7 +77,8 @@ class Game {
     autoCheckAnswer() {
         const userAnswer = parseInt(this.ui.getAnswer());
         if (!isNaN(userAnswer) && userAnswer === this.currentProblem.answer) {
-            // Simulate enter button press after a short delay to show the completed answer
+            // Show checkmark and wait briefly before proceeding
+            this.ui.showCheckmark();
             setTimeout(() => {
                 const enterButton = document.querySelector('.num-btn.enter');
                 if (enterButton) {
@@ -85,7 +86,7 @@ class Game {
                     setTimeout(() => enterButton.classList.remove('pressed'), 100);
                 }
                 this.processCorrectAnswer();
-            }, 300);
+            }, 500);
         }
     }
 
@@ -125,8 +126,9 @@ class Game {
     processIncorrectAnswer() {
         this.wrongAttempts++;
         
-        // Show wrong answer animation
+        // Show wrong answer animation and clear input
         this.ui.shake();
+        this.ui.clearAnswer();
 
         // Show skip button after 3 wrong attempts in challenge mode
         if (this.wrongAttempts >= 3 && this.gameMode === 'challenge') {
