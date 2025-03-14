@@ -118,17 +118,23 @@ class Visualization {
         const createBlocks = (container, number, isFirstNumber = true) => {
             // Show empty block if number is 0
             if (number === 0) {
+                const line = document.createElement('div');
+                line.className = 'blocks-line';
                 const emptyBlock = document.createElement('div');
                 emptyBlock.className = 'block empty';
-                container.appendChild(emptyBlock);
+                line.appendChild(emptyBlock);
+                container.appendChild(line);
                 return;
             }
 
             const tens = Math.floor(number / 10);
             const ones = number % 10;
 
-            // Create unit-of-ten blocks
+            // Create unit-of-ten blocks, each in its own line
             for (let i = 0; i < tens; i++) {
+                const line = document.createElement('div');
+                line.className = 'blocks-line';
+                
                 const tenBlock = document.createElement('div');
                 tenBlock.className = 'block unit-of-ten';
                 
@@ -139,15 +145,23 @@ class Visualization {
                     tenBlock.appendChild(segment);
                 }
                 
-                container.appendChild(tenBlock);
+                line.appendChild(tenBlock);
+                container.appendChild(line);
             }
 
-            // Create unit blocks
-            for (let i = 0; i < ones; i++) {
-                const block = document.createElement('div');
-                block.className = 'block';
-                block.style.backgroundColor = isFirstNumber ? '#4CAF50' : '#2196F3';
-                container.appendChild(block);
+            // Create unit blocks in a new line if there are any
+            if (ones > 0) {
+                const line = document.createElement('div');
+                line.className = 'blocks-line';
+                
+                for (let i = 0; i < ones; i++) {
+                    const block = document.createElement('div');
+                    block.className = 'block';
+                    block.style.backgroundColor = isFirstNumber ? '#4CAF50' : '#2196F3';
+                    line.appendChild(block);
+                }
+                
+                container.appendChild(line);
             }
         };
 
@@ -157,17 +171,23 @@ class Visualization {
             
             // Show empty block if total is 0
             if (total === 0) {
+                const line = document.createElement('div');
+                line.className = 'blocks-line';
                 const emptyBlock = document.createElement('div');
                 emptyBlock.className = 'block empty';
-                container.appendChild(emptyBlock);
+                line.appendChild(emptyBlock);
+                container.appendChild(line);
                 return;
             }
 
             const tens = Math.floor(total / 10);
             const ones = total % 10;
 
-            // Create unit-of-ten blocks
+            // Create unit-of-ten blocks, each in its own line
             for (let i = 0; i < tens; i++) {
+                const line = document.createElement('div');
+                line.className = 'blocks-line';
+                
                 const tenBlock = document.createElement('div');
                 tenBlock.className = 'block unit-of-ten';
                 
@@ -181,18 +201,26 @@ class Visualization {
                     remainingFromNum1--;
                 }
                 
-                container.appendChild(tenBlock);
+                line.appendChild(tenBlock);
+                container.appendChild(line);
                 num1 = Math.max(0, num1 - 10);
                 num2 = Math.max(0, num2 - (10 - Math.max(0, remainingFromNum1)));
             }
 
-            // Create remaining unit blocks
-            for (let i = 0; i < ones; i++) {
-                const block = document.createElement('div');
-                block.className = 'block';
-                block.style.backgroundColor = num1 > 0 ? '#4CAF50' : '#2196F3';
-                container.appendChild(block);
-                num1--;
+            // Create remaining unit blocks in a new line if there are any
+            if (ones > 0) {
+                const line = document.createElement('div');
+                line.className = 'blocks-line';
+                
+                for (let i = 0; i < ones; i++) {
+                    const block = document.createElement('div');
+                    block.className = 'block';
+                    block.style.backgroundColor = num1 > 0 ? '#4CAF50' : '#2196F3';
+                    line.appendChild(block);
+                    num1--;
+                }
+                
+                container.appendChild(line);
             }
         };
 
