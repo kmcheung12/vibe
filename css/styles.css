@@ -149,6 +149,17 @@ header {
     position: relative;
 }
 
+.hidden-input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    top: 0;
+    left: 0;
+}
+
 .checkmark {
     position: absolute;
     right: 10px;

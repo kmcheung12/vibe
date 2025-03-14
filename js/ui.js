@@ -64,26 +64,48 @@ class UI {
     }
 
     initializeKeyboardSupport() {
-        document.addEventListener('keydown', (e) => {
-            // Only handle keyboard input when game screen is visible
-            if (this.gameScreen.classList.contains('hidden')) return;
+        const hiddenInput = document.getElementById('hiddenInput');
 
-            // Handle numeric keys (0-9)
-            if (/^[0-9]$/.test(e.key)) {
+        // Focus hidden input when game screen is shown
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.target.classList.contains('hidden')) {
+                    hiddenInput.blur();
+                } else {
+                    hiddenInput.focus();
+                }
+            });
+        });
+        observer.observe(this.gameScreen, { attributes: true, attributeFilter: ['class'] });
+
+        // Keep focus on hidden input
+        document.addEventListener('click', () => {
+            if (!this.gameScreen.classList.contains('hidden')) {
+                hiddenInput.focus();
+            }
+        });
+
+        // Handle input events for numbers
+        hiddenInput.addEventListener('input', (e) => {
+            const input = e.data;
+            if (/^[0-9]$/.test(input)) {
                 if (this.currentAnswer.length < 10) {
-                    const button = document.querySelector(`.num-btn[data-key="${e.key}"]`);
+                    const button = document.querySelector(`.num-btn[data-key="${input}"]`);
                     if (button) {
                         button.classList.add('pressed');
                         setTimeout(() => button.classList.remove('pressed'), 100);
                     }
-                    this.currentAnswer += e.key;
+                    this.currentAnswer += input;
                     this.updateProblemDisplay();
                     document.dispatchEvent(new CustomEvent('answer-check'));
                 }
-                e.preventDefault();
             }
-            // Handle Enter and Backspace
-            else if (e.key === 'Enter') {
+            hiddenInput.value = ''; // Clear the input for next key
+        });
+
+        // Handle control keys
+        hiddenInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.code === 'NumpadEnter') {
                 const button = document.querySelector('.num-btn.enter');
                 if (button) {
                     button.classList.add('pressed');
@@ -92,7 +114,7 @@ class UI {
                 document.dispatchEvent(new CustomEvent('answer-submit'));
                 e.preventDefault();
             }
-            else if (e.key === 'Backspace') {
+            else if (e.key === 'Backspace' || e.key === 'Delete') {
                 const button = document.querySelector('.num-btn.erase');
                 if (button) {
                     button.classList.add('pressed');
