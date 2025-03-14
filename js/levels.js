@@ -24,15 +24,87 @@ const CONCEPTS = {
             };
         }
     },
-    sequence: {
-        type: 'sequence',
+    sequenceOne: {
+        type: 'sequence_one',
         generator: () => {
-            const start = Math.floor(Math.random() * 5) + 1;
-            const step = Math.floor(Math.random() * 3) + 1;
-            const sequence = Array.from({length: 4}, (_, i) => start + (step * i));
+            const isAscending = Math.random() < 0.5;
+            const step = 1;
+            const len = 4;
+            const offset = step * len;
+            // For ascending: start + 4 <= 100
+            // For descending: start - 4 >= 0
+            const start = isAscending 
+                ? Math.floor(Math.random() * (100 - offset))  // 0 to 96
+                : Math.floor(Math.random() * (100 - offset)) + offset; // 4 to 100
+            const sequence = Array.from({length: 4}, (_, i) => 
+                isAscending ? start + i : start - i
+            );
             return {
                 question: `What comes next? ${sequence.join(', ')}, ?`,
-                answer: start + (step * 4)
+                answer: isAscending ? start + offset : start - offset
+            };
+        }
+    },
+    sequenceTwo: {
+        type: 'sequence_two',
+        generator: () => {
+            const isAscending = Math.random() < 0.5;
+            const step = 2;
+            const len = 4;
+            const offset = step * len;
+            // For ascending: start + (4 * 2) <= 100
+            // For descending: start - (4 * 2) >= 0
+            const start = isAscending 
+                ? Math.floor(Math.random() * (100 - offset))  // 0 to 92
+                : Math.floor(Math.random() * (100 - offset)) + offset; // 8 to 100
+            const sequence = Array.from({length: 4}, (_, i) => 
+                isAscending ? start + (i * step) : start - (i * step)
+            );
+            return {
+                question: `What comes next? ${sequence.join(', ')}, ?`,
+                answer: isAscending ? start + offset : start - offset
+            };
+        }
+    },
+    sequenceFive: {
+        type: 'sequence_five',
+        generator: () => {
+            const isAscending = Math.random() < 0.5;
+            const step = 5;
+            const len = 4;
+            const offset = step * len;
+            // For ascending: start + (4 * 5) <= 100
+            // For descending: start - (4 * 5) >= 0
+            const start = isAscending 
+                ? Math.floor(Math.random() * (100 - offset))  // 0 to 80
+                : Math.floor(Math.random() * (100 - offset)) + offset; // 20 to 100
+            const sequence = Array.from({length: 4}, (_, i) => 
+                isAscending ? start + (i * step) : start - (i * step)
+            );
+            return {
+                question: `What comes next? ${sequence.join(', ')}, ?`,
+                answer: isAscending ? start + offset : start - offset
+            };
+        }
+    },
+    sequenceTen: {
+        type: 'sequence_ten',
+        generator: () => {
+            const isAscending = Math.random() < 0.5;
+            const step = 10;
+            const len = 4;
+            const offset = step * len;
+            // For ascending: start + (4 * 10) <= 100
+            // For descending: start - (4 * 10) >= 0
+            const start = isAscending 
+                ? Math.floor(Math.random() * (100 - offset))  // 0 to 60
+                : Math.floor(Math.random() * (100 - offset)) + offset; // 40 to 100
+            const sequence = Array.from({length: 4}, (_, i) => 
+                isAscending ? start + (i * step) : start - (i * step)
+            );
+            return {
+                question: `What comes next? ${sequence.join(', ')}, ?`,
+                answer: isAscending ? start + offset : start - offset
             };
         }
     },
@@ -111,24 +183,39 @@ const CONCEPTS = {
 
 // Levels organized by difficulty, referencing concepts
 const LEVELS = {
-    easy: {
-        name: 'Easy (Grade 1)',
+    grade1_1: {
+        name: 'Grade 1 - 1',
+        problems: [
+            CONCEPTS.sequenceOne,
+            CONCEPTS.sequenceTwo
+        ]
+    },
+    grade1_2: {
+        name: 'Grade 1 - 2',
+        problems: [
+            CONCEPTS.sequenceTwo,
+            CONCEPTS.sequenceFive,
+            CONCEPTS.sequenceTen
+        ]
+    },
+    grade1_3: {
+        name: 'Grade 1 - 3',
         problems: [
             CONCEPTS.addition,
             CONCEPTS.subtraction,
-            CONCEPTS.sequence
+            CONCEPTS.sequenceFive
         ]
     },
-    medium: {
-        name: 'Medium (Grade 2)',
+    grade2_1: {
+        name: 'Grade 2 - 1',
         problems: [
             CONCEPTS.multiplication,
             CONCEPTS.division,
             CONCEPTS.money
         ]
     },
-    hard: {
-        name: 'Hard (Grade 3)',
+    grade3_1: {
+        name: 'Grade 3 - 1',
         problems: [
             CONCEPTS.fractions,
             CONCEPTS.time,
