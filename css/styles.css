@@ -367,10 +367,11 @@ header {
 .blocks-container {
     display: flex;
     flex-direction: row;
-    align-items: flex-start;
+    align-items: center;
     gap: 15px;
     flex-wrap: wrap;
     justify-content: center;
+    padding: 10px;
 }
 
 .blocks-row {
@@ -378,6 +379,8 @@ header {
     flex-direction: column;
     gap: 5px;
     max-width: 300px;
+    min-height: 27px;
+    align-items: center;
 }
 
 .blocks-line {
@@ -385,6 +388,7 @@ header {
     flex-wrap: wrap;
     gap: 2px;
     align-items: center;
+    min-height: 27px;
 }
 
 .block {
@@ -430,7 +434,18 @@ header {
     background-color: #2196F3;
 }
 
-/* Hide elements */
+.operator {
+    font-size: 24px;
+    font-weight: bold;
+    color: #333;
+    min-width: 30px;
+    min-height: 27px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    align-self: center;
+}
+
 .hidden {
     display: none !important;
 }
@@ -448,5 +463,34 @@ header {
 
     .problem-display {
         font-size: 1.5em;
+    }
+
+    .blocks-container {
+        gap: 10px;
+    }
+
+    .block.unit-of-ten {
+        width: 200px;
+    }
+
+    /* Stack the equals sign and result on mobile */
+    .blocks-container {
+        justify-content: space-evenly;
+    }
+    
+    /* Force operators to maintain vertical alignment */
+    .operator {
+        margin: 0 5px;
+    }
+}
+
+@media (max-width: 400px) {
+    .block.unit-of-ten {
+        width: 150px;
+    }
+
+    .blocks-container {
+        padding: 5px;
+        gap: 8px;
     }
 }

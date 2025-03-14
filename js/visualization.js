@@ -7,6 +7,23 @@ class Visualization {
         this.firstNumber = document.getElementById('firstNumber');
         this.secondNumber = document.getElementById('secondNumber');
         this.totalNumber = document.getElementById('totalNumber');
+        
+        // Create operator spans
+        this.plusOperator = document.createElement('span');
+        this.plusOperator.className = 'operator';
+        this.plusOperator.textContent = '+';
+        
+        this.equalsOperator = document.createElement('span');
+        this.equalsOperator.className = 'operator';
+        this.equalsOperator.textContent = '=';
+
+        // Set up block container structure
+        this.blocksContainer.innerHTML = '';
+        this.blocksContainer.appendChild(this.firstNumber);
+        this.blocksContainer.appendChild(this.plusOperator);
+        this.blocksContainer.appendChild(this.secondNumber);
+        this.blocksContainer.appendChild(this.equalsOperator);
+        this.blocksContainer.appendChild(this.totalNumber);
 
         this.initializeArrowhead();
     }
