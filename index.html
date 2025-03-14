@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Math Challenge Game</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#4CAF50">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Math Game">
+    
+    <!-- iOS Icons -->
+    <link rel="apple-touch-icon" href="icons/icon-152.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
+    <link rel="apple-touch-icon" sizes="167x167" href="icons/icon-167.png">
+    
+    <!-- iOS Splash Screens -->
+    <link rel="apple-touch-startup-image" href="splash/apple-splash-2048-2732.png" media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2)">
+    <link rel="apple-touch-startup-image" href="splash/apple-splash-1668-2388.png" media="(device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2)">
+    <link rel="apple-touch-startup-image" href="splash/apple-splash-1536-2048.png" media="(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2)">
+    <link rel="apple-touch-startup-image" href="splash/apple-splash-1242-2688.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3)">
+    <link rel="apple-touch-startup-image" href="splash/apple-splash-1125-2436.png" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)">
+    <link rel="apple-touch-startup-image" href="splash/apple-splash-828-1792.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)">
+    
+    <!-- Favicon -->
+    <link rel="shortcut icon" href="icons/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16x16.png">
+    
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="manifest" href="manifest.json">
+</head>
+<body>
+    <div class="game-container">
+        <header>
+            <div class="timer">Time: <span id="timer">00:00</span></div>
+            <div class="mode-indicator">Mode: <span id="modeDisplay">Challenge</span></div>
+            <div class="score">Score: <span id="score">0/20</span></div>
+        </header>
+        
+        <main>
+            <div class="difficulty-select" id="difficultySelect">
+                <h2>Select Mode</h2>
+                <div class="mode-buttons">
+                    <button class="mode-btn" data-mode="challenge">
+                        <span class="mode-title">Challenge Mode</span>
+                        <span class="mode-desc">20 Problems • Timed • Rankings</span>
+                    </button>
+                    <button class="mode-btn" data-mode="practice">
+                        <span class="mode-title">Practice Mode</span>
+                        <span class="mode-desc">Unlimited • Explanations • No Time Limit</span>
+                    </button>
+                </div>
+                
+                <div id="difficultyButtons" class="hidden">
+                    <h3>Select Difficulty</h3>
+                    <button class="difficulty-btn" data-difficulty="easy">Easy (Grade 1)</button>
+                    <button class="difficulty-btn" data-difficulty="medium">Medium (Grade 2)</button>
+                    <button class="difficulty-btn" data-difficulty="hard">Hard (Grade 3)</button>
+                </div>
+            </div>
+
+            <div class="game-screen hidden" id="gameScreen">
+                <div class="problem-display" id="problemDisplay"></div>
+                <div class="explanation hidden" id="explanation"></div>
+                <div class="answer-input">
+                    <input type="text" id="answerInput" readonly>
+                </div>
+                <div class="number-pad">
+                    <button class="num-btn" data-key="7">7</button>
+                    <button class="num-btn" data-key="8">8</button>
+                    <button class="num-btn" data-key="9">9</button>
+                    <button class="num-btn" data-key="4">4</button>
+                    <button class="num-btn" data-key="5">5</button>
+                    <button class="num-btn" data-key="6">6</button>
+                    <button class="num-btn" data-key="1">1</button>
+                    <button class="num-btn" data-key="2">2</button>
+                    <button class="num-btn" data-key="3">3</button>
+                    <button class="num-btn erase" data-key="Backspace">⌫</button>
+                    <button class="num-btn" data-key="0">0</button>
+                    <button class="num-btn enter" data-key="Enter">↵</button>
+                </div>
+                <button class="skip-btn hidden" id="skipBtn">Skip</button>
+            </div>
+
+            <div class="progress-screen hidden" id="progressScreen">
+                <h2>Your Progress</h2>
+                <div class="stats-container">
+                    <div class="stat-box">
+                        <h3>Total Problems Solved</h3>
+                        <p id="totalSolved">0</p>
+                    </div>
+                    <div class="stat-box">
+                        <h3>Average Accuracy</h3>
+                        <p id="avgAccuracy">0%</p>
+                    </div>
+                    <div class="stat-box">
+                        <h3>Best Time</h3>
+                        <p id="bestTime">--:--</p>
+                    </div>
+                </div>
+                <canvas id="progressChart"></canvas>
+                <div class="achievements" id="achievements"></div>
+            </div>
+
+            <div class="rankings hidden" id="rankings">
+                <h2>Top Scores</h2>
+                <div class="rankings-list" id="rankingsList"></div>
+                <div class="action-buttons">
+                    <button id="playAgain">Play Again</button>
+                    <button id="viewProgress">View Progress</button>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="js/progress.js"></script>
+    <script src="js/levels.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/service-worker.js');
+        }
+    </script>
+</body>
+</html>
