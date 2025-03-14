@@ -4,7 +4,6 @@ class UI {
         this.difficultySelect = document.getElementById('difficultySelect');
         this.gameScreen = document.getElementById('gameScreen');
         this.problemDisplay = document.getElementById('problemDisplay');
-        this.answerInput = document.getElementById('answerInput');
         this.skipBtn = document.getElementById('skipBtn');
         this.explanation = document.getElementById('explanation');
         this.progressScreen = document.getElementById('progressScreen');
@@ -14,6 +13,8 @@ class UI {
         this.scoreDisplay = document.getElementById('score');
         this.timerDisplay = document.getElementById('timer');
         this.quitButton = document.getElementById('quitBtn');
+        this.currentAnswer = '';
+        this.originalProblem = '';
 
         // Initialize event listeners
         this.initializeNumberPad();
@@ -52,9 +53,11 @@ class UI {
             if (button.classList.contains('enter')) {
                 document.dispatchEvent(new CustomEvent('answer-submit'));
             } else if (button.classList.contains('erase')) {
-                this.answerInput.value = this.answerInput.value.slice(0, -1);
-            } else if (this.answerInput.value.length < 10) {
-                this.answerInput.value += button.textContent;
+                this.currentAnswer = this.currentAnswer.slice(0, -1);
+                this.updateProblemDisplay();
+            } else if (this.currentAnswer.length < 10) {
+                this.currentAnswer += button.textContent;
+                this.updateProblemDisplay();
                 document.dispatchEvent(new CustomEvent('answer-check'));
             }
         });
@@ -67,13 +70,14 @@ class UI {
 
             // Handle numeric keys (0-9)
             if (/^[0-9]$/.test(e.key)) {
-                if (this.answerInput.value.length < 10) {
+                if (this.currentAnswer.length < 10) {
                     const button = document.querySelector(`.num-btn[data-key="${e.key}"]`);
                     if (button) {
                         button.classList.add('pressed');
                         setTimeout(() => button.classList.remove('pressed'), 100);
                     }
-                    this.answerInput.value += e.key;
+                    this.currentAnswer += e.key;
+                    this.updateProblemDisplay();
                     document.dispatchEvent(new CustomEvent('answer-check'));
                 }
                 e.preventDefault();
@@ -94,7 +98,8 @@ class UI {
                     button.classList.add('pressed');
                     setTimeout(() => button.classList.remove('pressed'), 100);
                 }
-                this.answerInput.value = this.answerInput.value.slice(0, -1);
+                this.currentAnswer = this.currentAnswer.slice(0, -1);
+                this.updateProblemDisplay();
                 e.preventDefault();
             }
         });
@@ -217,8 +222,8 @@ class UI {
         this.rankings.classList.add('hidden');
         this.skipBtn.classList.add('hidden');
         this.explanation.classList.add('hidden');
-        this.answerInput.value = '';
-        this.answerInput.focus();
+        this.currentAnswer = '';
+        this.updateProblemDisplay();
     }
 
     showDifficultySelect() {
@@ -226,6 +231,9 @@ class UI {
         this.gameScreen.classList.add('hidden');
         this.progressScreen.classList.add('hidden');
         this.rankings.classList.add('hidden');
+        this.currentAnswer = '';
+        this.originalProblem = '';
+        this.problemDisplay.textContent = '';
     }
 
     showRankings(rankings) {
@@ -268,9 +276,24 @@ class UI {
     }
 
     displayProblem(problem) {
-        this.problemDisplay.textContent = problem;
-        this.answerInput.value = '';
+        this.originalProblem = problem;
+        this.currentAnswer = '';
+        this.updateProblemDisplay();
         this.explanation.classList.add('hidden');
+    }
+
+    updateProblemDisplay() {
+        let displayText = this.originalProblem;
+        if (!displayText) return;
+        
+        if (displayText.includes('_')) {
+            displayText = displayText.replace('_', this.currentAnswer || '_');
+        } else if (displayText.includes('?')) {
+            displayText = displayText.replace('?', this.currentAnswer || '?');
+        } else {
+            displayText = displayText + ' = ' + (this.currentAnswer || '_');
+        }
+        this.problemDisplay.textContent = displayText;
     }
 
     updateTimer(seconds) {
@@ -296,15 +319,16 @@ class UI {
     }
 
     getAnswer() {
-        return this.answerInput.value.trim();
+        return this.currentAnswer.trim();
     }
 
     clearAnswer() {
-        this.answerInput.value = '';
+        this.currentAnswer = '';
+        this.updateProblemDisplay();
     }
 
     shake() {
-        this.answerInput.classList.add('shake');
-        setTimeout(() => this.answerInput.classList.remove('shake'), 500);
+        this.problemDisplay.classList.add('shake');
+        setTimeout(() => this.problemDisplay.classList.remove('shake'), 500);
     }
 }

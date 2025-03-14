@@ -142,16 +142,20 @@ header {
     background-color: white;
     border-radius: 10px;
     box-shadow: var(--shadow);
+    min-height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.answer-input input {
-    width: 100%;
-    padding: 10px;
-    font-size: 1.5em;
-    text-align: right;
-    margin-bottom: 10px;
-    border: 2px solid #ddd;
-    border-radius: 5px;
+.problem-display.shake {
+    animation: shake 0.5s;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
 }
 
 .number-pad {

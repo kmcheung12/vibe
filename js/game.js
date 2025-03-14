@@ -60,10 +60,9 @@ class Game {
         this.currentProblem = problemType.generator();
         
         // Update UI
-        this.ui.problemDisplay.textContent = this.currentProblem.question;
+        this.ui.displayProblem(this.currentProblem.question);
         this.ui.skipBtn.classList.add('hidden');
         this.ui.explanation.classList.add('hidden');
-        this.ui.answerInput.value = '';
         
         // Show explanation in practice mode
         if (this.gameMode === 'practice') {
@@ -76,22 +75,22 @@ class Game {
     }
 
     autoCheckAnswer() {
-        const userAnswer = parseInt(this.ui.answerInput.value);
+        const userAnswer = parseInt(this.ui.getAnswer());
         if (!isNaN(userAnswer) && userAnswer === this.currentProblem.answer) {
-            // Simulate enter button press
-            const enterButton = document.querySelector('.num-btn.enter');
-            if (enterButton) {
-                enterButton.classList.add('pressed');
-                setTimeout(() => enterButton.classList.remove('pressed'), 100);
-            }
-            this.processCorrectAnswer();
+            // Simulate enter button press after a short delay to show the completed answer
+            setTimeout(() => {
+                const enterButton = document.querySelector('.num-btn.enter');
+                if (enterButton) {
+                    enterButton.classList.add('pressed');
+                    setTimeout(() => enterButton.classList.remove('pressed'), 100);
+                }
+                this.processCorrectAnswer();
+            }, 300);
         }
     }
 
     checkAnswer() {
-        console.log("something!!!");
-        console.log(this.ui.answerInput.value);
-        const userAnswer = parseInt(this.ui.answerInput.value);
+        const userAnswer = parseInt(this.ui.getAnswer());
         if (isNaN(userAnswer)) return;
 
         if (userAnswer === this.currentProblem.answer) {
@@ -127,8 +126,7 @@ class Game {
         this.wrongAttempts++;
         
         // Show wrong answer animation
-        this.ui.answerInput.classList.add('shake');
-        setTimeout(() => this.ui.answerInput.classList.remove('shake'), 500);
+        this.ui.shake();
 
         // Show skip button after 3 wrong attempts in challenge mode
         if (this.wrongAttempts >= 3 && this.gameMode === 'challenge') {

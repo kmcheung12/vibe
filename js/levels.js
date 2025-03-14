@@ -47,7 +47,7 @@ const CONCEPTS = {
                 isAscending ? start + (i * multiple) : start - (i * multiple)
             );
             return {
-                question: `What comes next in this ${isAscending ? 'increasing' : 'decreasing'} sequence? ${sequence.join(', ')}, ?`,
+                question: `What comes next in this ${isAscending ? 'increasing' : 'decreasing'} sequence ${sequence.join(', ')}, _`,
                 answer: isAscending ? start + (len * multiple) : start - (len * multiple),
                 explanation: `This is a sequence that ${isAscending ? 'increases' : 'decreases'} by ${multiple} each time. Each number is ${isAscending ? 'adding' : 'subtracting'} ${multiple} to get the next number.`,
                 visualization: {
@@ -76,7 +76,7 @@ const CONCEPTS = {
                 isAscending ? start + (i * multiple) : start - (i * multiple)
             );
             return {
-                question: `What comes next in this ${isAscending ? 'increasing' : 'decreasing'} sequence? ${sequence.join(', ')}, ?`,
+                question: `What comes next in this ${isAscending ? 'increasing' : 'decreasing'} sequence ${sequence.join(', ')}, _`,
                 answer: isAscending ? start + (len * multiple) : start - (len * multiple),
                 explanation: `This is a sequence of even numbers that ${isAscending ? 'increases' : 'decreases'} by ${multiple} each time. Each number is ${isAscending ? 'adding' : 'subtracting'} ${multiple} to get the next number.`,
                 visualization: {
@@ -105,7 +105,7 @@ const CONCEPTS = {
                 isAscending ? start + (i * multiple) : start - (i * multiple)
             );
             return {
-                question: `What comes next in this ${isAscending ? 'increasing' : 'decreasing'} sequence? ${sequence.join(', ')}, ?`,
+                question: `What comes next in this ${isAscending ? 'increasing' : 'decreasing'} sequence ${sequence.join(', ')}, _`,
                 answer: isAscending ? start + (len * multiple) : start - (len * multiple),
                 explanation: `This is a sequence that counts by ${multiple}s. Each number is ${isAscending ? 'adding' : 'subtracting'} ${multiple} to get the next number.`,
                 visualization: {
@@ -134,7 +134,7 @@ const CONCEPTS = {
                 isAscending ? start + (i * multiple) : start - (i * multiple)
             );
             return {
-                question: `What comes next in this ${isAscending ? 'increasing' : 'decreasing'} sequence? ${sequence.join(', ')}, ?`,
+                question: `What comes next in this ${isAscending ? 'increasing' : 'decreasing'} sequence ${sequence.join(', ')}, _`,
                 answer: isAscending ? start + (len * multiple) : start - (len * multiple),
                 explanation: `This is a sequence that counts by ${multiple}s. Each number is ${isAscending ? 'adding' : 'subtracting'} ${multiple} to get the next number.`,
                 visualization: {
