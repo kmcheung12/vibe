@@ -33,11 +33,10 @@ body {
 header {
     display: flex;
     justify-content: space-between;
-    padding: 15px;
-    background-color: white;
-    border-radius: 10px;
-    margin-bottom: 20px;
-    box-shadow: var(--shadow);
+    align-items: center;
+    padding: 1rem;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
 }
 
 .difficulty-select {
@@ -318,28 +317,18 @@ header {
 }
 
 .quit-btn {
-    padding: 8px 15px;
-    border: none;
-    border-radius: 8px;
-    background: linear-gradient(145deg, #ff4d4d, #e60000);
+    padding: 0.5rem 1rem;
+    background-color: #dc3545;
     color: white;
-    font-size: 0.9em;
+    border: none;
+    border-radius: 4px;
     cursor: pointer;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    margin-left: 15px;
+    font-weight: 500;
+    transition: background-color 0.2s;
 }
 
 .quit-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(230, 0, 0, 0.3);
-}
-
-.quit-btn:active {
-    transform: translateY(0);
-    background: #e60000;
+    background-color: #c82333;
 }
 
 /* Responsive Design */

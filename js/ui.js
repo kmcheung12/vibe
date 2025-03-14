@@ -13,6 +13,7 @@ class UI {
         this.modeDisplay = document.getElementById('modeDisplay');
         this.scoreDisplay = document.getElementById('score');
         this.timerDisplay = document.getElementById('timer');
+        this.quitButton = document.getElementById('quitBtn');
 
         // Initialize event listeners
         this.initializeNumberPad();
@@ -20,7 +21,7 @@ class UI {
         this.initializeAnimations();
         this.initializeModeButtons();
         this.initializeGameControls();
-        this.addQuitButton();
+        this.initializeQuitButton();
     }
 
     initializeGameControls() {
@@ -201,17 +202,12 @@ class UI {
         });
     }
 
-    addQuitButton() {
-        const quitBtn = document.createElement('button');
-        quitBtn.id = 'quitBtn';
-        quitBtn.className = 'quit-btn';
-        quitBtn.textContent = '✕ Quit Game';
-        quitBtn.addEventListener('click', () => {
-            document.dispatchEvent(new CustomEvent('quit-game'));
+    initializeQuitButton() {
+        this.quitButton.addEventListener('click', () => {
+            if (confirm('Are you sure you want to quit? Your progress will be lost.')) {
+                window.location.reload();
+            }
         });
-        
-        const header = document.querySelector('header');
-        header.appendChild(quitBtn);
     }
 
     showGameScreen() {
