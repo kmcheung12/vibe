@@ -54,7 +54,6 @@ export class Food {
             
             const gridX = Math.floor(Math.random() * (CONSTANTS.GRID_WIDTH + 1)) - halfWidth;
             const gridY = Math.floor(Math.random() * (CONSTANTS.GRID_HEIGHT + 1)) - halfHeight;
-            console.log(`Food spawned at grid position: ${gridX}, ${gridY}`);
             
             // Create orb object
             this.orb = {
@@ -72,8 +71,6 @@ export class Food {
                 gridY * CONSTANTS.CELL_SIZE,
                 0
             );
-            
-            console.log(`Food world position: ${this.orbMesh.position.x}, ${this.orbMesh.position.y}, ${this.orbMesh.position.z}`);
             
             // Add to scene
             this.foodGroup.add(this.orbMesh);

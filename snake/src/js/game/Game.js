@@ -319,15 +319,18 @@ export class Game {
         }
         
         // Check player self-collision
-        this.snakePlayer.checkSelfCollision();
+        if (this.snakePlayer.checkSelfCollision()) {
+            console.log("Snake hit itself! Game over.");
+            this.snakePlayer.die();
+        }
         
         // Check boundary collision
         const headPos = this.snakePlayer.getHeadGridPosition();
         if (this.snakePlayer.checkBoundaryCollision(headPos)) {
-            console.log("Snake hit boundary! Game over.");
             this.snakePlayer.die();
+            console.log("Snake hit boundary! Game over.");
         }
-        if (this.snakePlayer.isDead) {
+        if (this.snakePlayer.isDead){
             this.soundManager.play('gameOver');
             this.gameOver();
         }
@@ -369,6 +372,32 @@ export class Game {
             this.isPaused = false;
             console.log("Game resumed");
         }
+    }
+
+    reset() {
+        // Stop the game
+        this.isRunning = false;
+        this.isPaused = false;
+        
+        // Reset score
+        this.score = 0;
+        
+        // Reset player snake
+        if (this.snakePlayer) {
+            this.snakePlayer.reset();
+        }
+        
+        // Reset food
+        if (this.food) {
+            this.food.reset();
+        }
+        
+        // Dispatch event to update UI
+        this.dispatchEvent(new CustomEvent('scoreupdate', { 
+            detail: { score: this.score }
+        }));
+        
+        console.log("Game reset");
     }
 
     onResize(width, height) {

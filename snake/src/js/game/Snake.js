@@ -87,6 +87,7 @@ export class Snake {
         }
         
         // Create snake head using the shared geometry and material
+        this.playerMaterial.color.set(CONSTANTS.SNAKE_COLORS.PLAYER_ALIVE);
         const head = new THREE.Mesh(this.segmentGeometry, this.isPlayer ? this.playerMaterial : this.botMaterial);
         
         // Position the head relative to the group

@@ -1,5 +1,5 @@
 export class Storage {
-    constructor(storageKey = 'slither-clone') {
+    constructor(storageKey = 'slither') {
         this.storageKey = storageKey;
         this.highScoreKey = `${storageKey}-highscore`;
         this.scoresKey = `${storageKey}-scores`;
@@ -11,7 +11,7 @@ export class Storage {
         // Save high score if it's higher than current
         const currentHighScore = this.getHighScore();
         if (score > currentHighScore) {
-            localStorage.setItem(this.highScoreKey, score.toString());
+            this.setHighScore(score);
         }
         
         // Add to scores list
@@ -27,6 +27,11 @@ export class Storage {
         
         // Save to storage
         localStorage.setItem(this.scoresKey, JSON.stringify(topScores));
+    }
+    
+    // Set the high score directly
+    setHighScore(score) {
+        localStorage.setItem(this.highScoreKey, score.toString());
     }
     
     // Get the current high score
