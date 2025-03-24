@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Julian Settings</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      color: #333;
+    }
+    h1 {
+      color: #4a55af;
+      border-bottom: 2px solid #4a55af;
+      padding-bottom: 10px;
+    }
+    section {
+      margin-bottom: 30px;
+      background-color: #f9f9f9;
+      padding: 15px;
+      border-radius: 5px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    h2 {
+      color: #4a55af;
+      margin-top: 0;
+    }
+    label {
+      display: block;
+      margin: 10px 0 5px;
+      font-weight: bold;
+    }
+    input[type="text"], select, textarea {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    button {
+      background-color: #4a55af;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-right: 10px;
+      margin-top: 5px;
+    }
+    button:hover {
+      background-color: #3a4499;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 15px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+    .status {
+      margin-top: 10px;
+      padding: 10px;
+      border-radius: 4px;
+    }
+    .success {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    .error {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+    .masked-key {
+      font-family: monospace;
+      letter-spacing: 1px;
+    }
+    .current-config {
+      background-color: #e9ecef;
+      padding: 10px;
+      border-radius: 4px;
+      margin-bottom: 15px;
+    }
+    textarea.recipe-prompt {
+      height: 80px;
+      resize: vertical;
+    }
+    .note {
+      background-color: #fff3cd;
+      color: #856404;
+      padding: 10px;
+      border-radius: 4px;
+      margin-top: 10px;
+      font-size: 0.9em;
+    }
+  </style>
+  <script type="module" crossorigin src="/src/options.js"></script>
+</head>
+<body>
+  <h1>Julian Settings</h1>
+  
+  <div id="status" class="status" style="display: none;"></div>
+  
+  <section>
+    <h2>LLM Configuration</h2>
+    <div class="current-config">
+      <p><strong>Current Provider:</strong> <span id="currentProvider"></span></p>
+      <p><strong>API Key:</strong> <span id="currentApiKey" class="masked-key"></span></p>
+      <p><strong>Model:</strong> <span id="currentModel"></span></p>
+    </div>
+    
+    <label for="llmProvider">Provider:</label>
+    <select id="llmProvider">
+      <option value="huggingface">Hugging Face</option>
+      <option value="ollama">Ollama (Local)</option>
+      <option value="custom">Custom</option>
+    </select>
+    
+    <div id="modelContainer">
+      <label for="model">Model:</label>
+      <input type="text" id="model" placeholder="e.g., facebook/bart-large-cnn or llama2">
+    </div>
+    
+    <div id="customUrlContainer" style="display: none;">
+      <label for="customUrl">Custom API URL:</label>
+      <input type="text" id="customUrl" placeholder="Enter custom API URL">
+    </div>
+    
+    <label for="apiKey">API Key:</label>
+    <input type="password" id="apiKey" placeholder="Enter API Key">
+    
+    <div id="ollamaNote" class="note" style="display: none;">
+      <p><strong>Note:</strong> Ollama runs locally on your machine. Make sure to <a href="https://ollama.ai" target="_blank">download and install Ollama</a> first. No API key is required for Ollama.</p>
+    </div>
+    
+    <button id="testApi">Test API Connection</button>
+  </section>
+  
+  <section>
+    <h2>Prompt Recipes</h2>
+    <p>Configure prompts for different actions. Use {text} as a placeholder for the input text.</p>
+    
+    <table>
+      <thead>
+        <tr>
+          <th width="25%">Name</th>
+          <th width="65%">Prompt</th>
+          <th width="10%">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="recipes"></tbody>
+    </table>
+    
+    <button id="addRecipe">Add Recipe</button>
+  </section>
+  
+  <section>
+    <h2>General Settings</h2>
+    
+    <label>
+      <input type="checkbox" id="showSidebarToggle">
+      Show sidebar toggle button on all pages
+    </label>
+    
+    <label>
+      <input type="checkbox" id="autoShowSidebar">
+      Automatically show sidebar when using context menu
+    </label>
+  </section>
+  
+  <section>
+    <h2>API Key Management</h2>
+    <p>Manage your API keys for different LLM providers.</p>
+    
+    <table>
+      <thead>
+        <tr>
+          <th width="25%">Provider</th>
+          <th width="40%">API Key</th>
+          <th width="25%">Last Used</th>
+          <th width="10%">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="apiKeysList"></tbody>
+    </table>
+    
+    <div style="margin-top: 15px;">
+      <h3>Add New API Key</h3>
+      <label for="newProviderName">Provider Name:</label>
+      <input type="text" id="newProviderName" placeholder="e.g., OpenAI, Anthropic, etc.">
+      
+      <label for="newProviderKey">API Key:</label>
+      <input type="password" id="newProviderKey" placeholder="Enter API Key">
+      
+      <button id="addApiKey" style="margin-top: 10px;">Add API Key</button>
+    </div>
+  </section>
+  
+  <button id="save">Save All Settings</button>
+  <button id="reset">Reset to Defaults</button>
+  
+</body>
+</html>

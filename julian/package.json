@@ -1,0 +1,19 @@
+{
+  "name": "julian",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Julian Browser Extension - AI assistant that offers question answering, webpage summarization, and text generation",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite build --watch",
+    "dev:firefox": "vite build --watch --mode firefox",
+    "build": "vite build",
+    "build:firefox": "vite build --mode firefox"
+  },
+  "keywords": ["browser-extension", "ai-assistant", "chrome-extension", "firefox-extension"],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "vite-plugin-web-extension": "^4.4.3"
+  }
+}
