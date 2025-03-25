@@ -1,8 +1,8 @@
 // Options page script for Julian browser extension
 // Handles settings configuration and storage
 
-// Use the appropriate API namespace based on the browser
-const browserAPI = typeof browser !== 'undefined' ? browser : chrome;
+// Import storage utilities
+import { browserAPI, getFromStorage, setToStorage, clearStorage } from './storage.js';
 
 // Default settings
 const DEFAULT_SETTINGS = {
@@ -78,13 +78,7 @@ function init() {
 // Load settings from storage
 function loadSettings() {
   // Use Promise-based approach for Firefox compatibility
-  const storagePromise = typeof browser !== 'undefined' ? 
-    browserAPI.storage.sync.get(["llmConfig", "promptRecipes", "generalSettings", "providerApiKeys", "apiKeyUsage"]) :
-    new Promise(resolve => {
-      browserAPI.storage.sync.get(["llmConfig", "promptRecipes", "generalSettings", "providerApiKeys", "apiKeyUsage"], resolve);
-    });
-  
-  storagePromise.then(data => {
+  getFromStorage(["llmConfig", "promptRecipes", "generalSettings", "providerApiKeys", "apiKeyUsage"]).then(data => {
     const mergedSettings = {
       llmConfig: data.llmConfig || DEFAULT_SETTINGS.llmConfig,
       promptRecipes: data.promptRecipes || DEFAULT_SETTINGS.promptRecipes,
@@ -105,15 +99,11 @@ function loadSettings() {
 
 // Update the current configuration display
 function updateCurrentConfigDisplay(config) {
-  elements.currentProvider.textContent = config.provider === "custom" ? "Custom" : 
-                                        config.provider === "ollama" ? "Ollama (Local)" : 
-                                        "Hugging Face";
+  elements.currentProvider.textContent = config.provider === "custom" ? "Custom" : "Hugging Face";
   elements.currentApiKey.textContent = maskApiKey(config.apiKey);
   
   if (config.provider === "custom") {
     elements.currentModel.textContent = config.customUrl || "Not set";
-  } else if (config.provider === "ollama") {
-    elements.currentModel.textContent = config.model || "llama2";
   } else {
     elements.currentModel.textContent = config.model || "facebook/bart-large-cnn";
   }
@@ -139,9 +129,6 @@ function populateFormFields(settings) {
     elements.apiKey.value = providerApiKeys.huggingface || llmConfig.apiKey || "";
   } else if (llmConfig.provider === "custom") {
     elements.apiKey.value = providerApiKeys.custom || llmConfig.apiKey || "";
-  } else {
-    // Ollama doesn't need an API key
-    elements.apiKey.value = "";
   }
   
   elements.showSidebarToggle.checked = generalSettings.showSidebarToggle;
@@ -154,7 +141,6 @@ function populateFormFields(settings) {
 function toggleProviderFields() {
   const provider = elements.llmProvider.value;
   const isCustom = provider === "custom";
-  const isOllama = provider === "ollama";
   
   // Show/hide custom URL field
   elements.customUrlContainer.style.display = isCustom ? "block" : "none";
@@ -163,13 +149,8 @@ function toggleProviderFields() {
   elements.modelContainer.style.display = isCustom ? "none" : "block";
   
   // Update API key field placeholder based on provider
-  if (isOllama) {
-    elements.apiKey.placeholder = "Not required for Ollama";
-    elements.apiKey.disabled = true;
-  } else {
-    elements.apiKey.placeholder = "Enter API Key";
-    elements.apiKey.disabled = false;
-  }
+  elements.apiKey.placeholder = "Enter API Key";
+  elements.apiKey.disabled = false;
   
   // Load the appropriate API key for the selected provider
   loadApiKeyForProvider(provider);
@@ -177,23 +158,13 @@ function toggleProviderFields() {
 
 // Load the API key for the selected provider
 function loadApiKeyForProvider(provider) {
-  // Use Promise-based approach for Firefox compatibility
-  const storagePromise = typeof browser !== 'undefined' ? 
-    browserAPI.storage.sync.get(["providerApiKeys"]) :
-    new Promise(resolve => {
-      browserAPI.storage.sync.get(["providerApiKeys"], resolve);
-    });
-  
-  storagePromise.then(data => {
+  getFromStorage(["providerApiKeys"]).then(data => {
     const providerApiKeys = data.providerApiKeys || DEFAULT_SETTINGS.providerApiKeys;
     
     if (provider === "huggingface") {
       elements.apiKey.value = providerApiKeys.huggingface || "";
     } else if (provider === "custom") {
       elements.apiKey.value = providerApiKeys.custom || "";
-    } else {
-      // Ollama doesn't need an API key
-      elements.apiKey.value = "";
     }
   });
 }
@@ -259,7 +230,7 @@ function renderApiKeys(providerApiKeys, apiKeyUsage) {
   });
   
   // Check if there are any API keys to display
-  if (apiKeysArray.length === 0 || apiKeysArray.every(item => item.provider === "ollama" || !item.key)) {
+  if (apiKeysArray.length === 0 || apiKeysArray.every(item => !item.key)) {
     // No API keys to display, show a message and add key button
     const row = document.createElement("tr");
     const cell = document.createElement("td");
@@ -288,7 +259,6 @@ function renderApiKeys(providerApiKeys, apiKeyUsage) {
   
   // Render each API key
   apiKeysArray.forEach(item => {
-    if (item.provider === "ollama") return; // Skip Ollama as it doesn't need an API key
     if (!item.key) return; // Skip empty keys
     
     const row = document.createElement("tr");
@@ -344,14 +314,7 @@ function formatLastUsed(timestamp) {
 
 // Add a new recipe
 function addRecipe() {
-  // Use Promise-based approach for Firefox compatibility
-  const storagePromise = typeof browser !== 'undefined' ? 
-    browserAPI.storage.sync.get(["promptRecipes"]) :
-    new Promise(resolve => {
-      browserAPI.storage.sync.get(["promptRecipes"], resolve);
-    });
-  
-  storagePromise.then(data => {
+  getFromStorage(["promptRecipes"]).then(data => {
     const recipes = data.promptRecipes || DEFAULT_SETTINGS.promptRecipes;
     recipes.push({ name: "New Recipe", prompt: "Enter your prompt here. Use {text} as placeholder." });
     renderRecipes(recipes);
@@ -360,14 +323,7 @@ function addRecipe() {
 
 // Delete a recipe
 function deleteRecipe(index) {
-  // Use Promise-based approach for Firefox compatibility
-  const storagePromise = typeof browser !== 'undefined' ? 
-    browserAPI.storage.sync.get(["promptRecipes"]) :
-    new Promise(resolve => {
-      browserAPI.storage.sync.get(["promptRecipes"], resolve);
-    });
-  
-  storagePromise.then(data => {
+  getFromStorage(["promptRecipes"]).then(data => {
     const recipes = data.promptRecipes || DEFAULT_SETTINGS.promptRecipes;
     if (index >= 0 && index < recipes.length) {
       recipes.splice(index, 1);
@@ -391,20 +347,13 @@ function addNewApiKey() {
     return;
   }
   
-  // Use Promise-based approach for Firefox compatibility
-  const storagePromise = typeof browser !== 'undefined' ? 
-    browserAPI.storage.sync.get(["providerApiKeys", "apiKeyUsage"]) :
-    new Promise(resolve => {
-      browserAPI.storage.sync.get(["providerApiKeys", "apiKeyUsage"], resolve);
-    });
-  
-  storagePromise.then(data => {
+  getFromStorage(["providerApiKeys", "apiKeyUsage"]).then(data => {
     const providerApiKeys = data.providerApiKeys || DEFAULT_SETTINGS.providerApiKeys;
     const apiKeyUsage = data.apiKeyUsage || DEFAULT_SETTINGS.apiKeyUsage;
     
     // Convert provider name to lowercase and replace spaces with underscores for storage
     const normalizedProviderName = providerName.toLowerCase().replace(/\s+/g, '_');
-    
+    console.log(providerName, apiKey, normalizedProviderName);
     // Add or update the API key
     providerApiKeys[normalizedProviderName] = apiKey;
     
@@ -414,13 +363,7 @@ function addNewApiKey() {
     }
     
     // Save the updated API keys
-    const savePromise = typeof browser !== 'undefined' ? 
-      browserAPI.storage.sync.set({ providerApiKeys, apiKeyUsage }) :
-      new Promise(resolve => {
-        browserAPI.storage.sync.set({ providerApiKeys, apiKeyUsage }, resolve);
-      });
-    
-    savePromise.then(() => {
+    setToStorage({ providerApiKeys, apiKeyUsage }).then(() => {
       showStatus(`API key for ${providerName} added successfully!`, "success");
       
       // Clear the form fields
@@ -439,14 +382,7 @@ function deleteApiKey(provider) {
     return;
   }
   
-  // Use Promise-based approach for Firefox compatibility
-  const storagePromise = typeof browser !== 'undefined' ? 
-    browserAPI.storage.sync.get(["providerApiKeys", "apiKeyUsage"]) :
-    new Promise(resolve => {
-      browserAPI.storage.sync.get(["providerApiKeys", "apiKeyUsage"], resolve);
-    });
-  
-  storagePromise.then(data => {
+  getFromStorage(["providerApiKeys", "apiKeyUsage"]).then(data => {
     const providerApiKeys = data.providerApiKeys || DEFAULT_SETTINGS.providerApiKeys;
     const apiKeyUsage = data.apiKeyUsage || DEFAULT_SETTINGS.apiKeyUsage;
     
@@ -461,13 +397,7 @@ function deleteApiKey(provider) {
     }
     
     // Save the updated API keys
-    const savePromise = typeof browser !== 'undefined' ? 
-      browserAPI.storage.sync.set({ providerApiKeys, apiKeyUsage }) :
-      new Promise(resolve => {
-        browserAPI.storage.sync.set({ providerApiKeys, apiKeyUsage }, resolve);
-      });
-    
-    savePromise.then(() => {
+    setToStorage({ providerApiKeys, apiKeyUsage }).then(() => {
       showStatus(`API key for ${formatProviderName(provider)} deleted successfully!`, "success");
       
       // Re-render the API keys list
@@ -480,7 +410,7 @@ function deleteApiKey(provider) {
 function testApiConnection() {
   const config = getFormConfig();
   
-  if (!config.apiKey && config.provider !== "ollama") {
+  if (!config.apiKey) {
     showStatus("Please enter an API key", "error");
     return;
   }
@@ -508,14 +438,6 @@ function testApiConnection() {
           use_cache: true,
           wait_for_model: true
         }
-      });
-      break;
-    case "ollama":
-      url = config.customUrl || "http://localhost:11434/api/generate";
-      body = JSON.stringify({ 
-        model: config.model || "llama2", 
-        prompt: testPrompt,
-        stream: false
       });
       break;
     case "custom":
@@ -561,14 +483,7 @@ function testApiConnection() {
 
 // Update the last used timestamp for an API key
 function updateApiKeyLastUsed(provider) {
-  // Use Promise-based approach for Firefox compatibility
-  const storagePromise = typeof browser !== 'undefined' ? 
-    browserAPI.storage.sync.get(["apiKeyUsage"]) :
-    new Promise(resolve => {
-      browserAPI.storage.sync.get(["apiKeyUsage"], resolve);
-    });
-  
-  storagePromise.then(data => {
+  getFromStorage(["apiKeyUsage"]).then(data => {
     const apiKeyUsage = data.apiKeyUsage || DEFAULT_SETTINGS.apiKeyUsage;
     
     // Update the last used timestamp
@@ -579,7 +494,7 @@ function updateApiKeyLastUsed(provider) {
     apiKeyUsage[provider].lastUsed = new Date().toISOString();
     
     // Save the updated usage data
-    browserAPI.storage.sync.set({ apiKeyUsage });
+    setToStorage({ apiKeyUsage });
   });
 }
 
@@ -624,13 +539,7 @@ function saveSettings() {
   const generalSettings = getFormGeneralSettings();
   
   // Get existing providerApiKeys to update
-  const storagePromise = typeof browser !== 'undefined' ? 
-    browserAPI.storage.sync.get(["providerApiKeys", "apiKeyUsage"]) :
-    new Promise(resolve => {
-      browserAPI.storage.sync.get(["providerApiKeys", "apiKeyUsage"], resolve);
-    });
-  
-  storagePromise.then(data => {
+  getFromStorage(["providerApiKeys", "apiKeyUsage"]).then(data => {
     const providerApiKeys = data.providerApiKeys || DEFAULT_SETTINGS.providerApiKeys;
     const apiKeyUsage = data.apiKeyUsage || DEFAULT_SETTINGS.apiKeyUsage;
     
@@ -649,14 +558,7 @@ function saveSettings() {
       apiKeyUsage: apiKeyUsage
     };
     
-    // Use Promise-based approach for Firefox compatibility
-    const savePromise = typeof browser !== 'undefined' ? 
-      browserAPI.storage.sync.set(settings) :
-      new Promise(resolve => {
-        browserAPI.storage.sync.set(settings, resolve);
-      });
-    
-    savePromise.then(() => {
+    setToStorage(settings).then(() => {
       showStatus("Settings saved successfully!", "success");
       updateCurrentConfigDisplay(config);
       renderApiKeys(providerApiKeys, apiKeyUsage);
@@ -667,14 +569,7 @@ function saveSettings() {
 // Reset settings to defaults
 function resetSettings() {
   if (confirm("Are you sure you want to reset all settings to defaults?")) {
-    // Use Promise-based approach for Firefox compatibility
-    const clearPromise = typeof browser !== 'undefined' ? 
-      browserAPI.storage.sync.clear() :
-      new Promise(resolve => {
-        browserAPI.storage.sync.clear(resolve);
-      });
-    
-    clearPromise.then(() => {
+    clearStorage().then(() => {
       showStatus("Settings reset to defaults", "success");
       loadSettings();
     });

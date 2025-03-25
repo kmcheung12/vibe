@@ -119,13 +119,12 @@
     <label for="llmProvider">Provider:</label>
     <select id="llmProvider">
       <option value="huggingface">Hugging Face</option>
-      <option value="ollama">Ollama (Local)</option>
       <option value="custom">Custom</option>
     </select>
     
     <div id="modelContainer">
       <label for="model">Model:</label>
-      <input type="text" id="model" placeholder="e.g., facebook/bart-large-cnn or llama2">
+      <input type="text" id="model" placeholder="e.g., facebook/bart-large-cnn">
     </div>
     
     <div id="customUrlContainer" style="display: none;">
@@ -135,10 +134,6 @@
     
     <label for="apiKey">API Key:</label>
     <input type="password" id="apiKey" placeholder="Enter API Key">
-    
-    <div id="ollamaNote" class="note" style="display: none;">
-      <p><strong>Note:</strong> Ollama runs locally on your machine. Make sure to <a href="https://ollama.ai" target="_blank">download and install Ollama</a> first. No API key is required for Ollama.</p>
-    </div>
     
     <button id="testApi">Test API Connection</button>
   </section>
