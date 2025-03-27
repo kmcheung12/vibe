@@ -65,6 +65,10 @@ class Visualization {
             case 'blocks':
                 this.renderBlocks(values);
                 break;
+            case 'fraction_half':
+            case 'fraction_quarter':
+                this.renderFractions(values);
+                break;
         }
     }
 
@@ -247,6 +251,75 @@ class Visualization {
             createTotalBlocks(this.totalNumber, num1, num2);
         }
 
+        this.blocksContainer.classList.remove('hidden');
+    }
+
+    renderFractions({ total, divisor }) {
+        // Clear previous blocks
+        this.firstNumber.innerHTML = '';
+        this.secondNumber.innerHTML = '';
+        this.totalNumber.innerHTML = '';
+        
+        // Change operators to match fraction visualization
+        this.plusOperator.textContent = '÷';
+        this.equalsOperator.textContent = '=';
+        
+        // Create a container for the total blocks
+        const totalContainer = document.createElement('div');
+        totalContainer.className = 'blocks-line';
+        
+        // Create blocks representing the total
+        for (let i = 0; i < total; i++) {
+            const block = document.createElement('div');
+            block.className = 'block';
+            block.style.backgroundColor = '#4CAF50';
+            totalContainer.appendChild(block);
+        }
+        
+        this.firstNumber.appendChild(totalContainer);
+        
+        // Create a container for the divisor (empty boxes)
+        const divisorContainer = document.createElement('div');
+        divisorContainer.className = 'blocks-line';
+        
+        // Create empty boxes representing the divisor
+        for (let i = 0; i < divisor; i++) {
+            const block = document.createElement('div');
+            block.className = 'block empty';
+            block.style.border = '2px dashed #2196F3';
+            divisorContainer.appendChild(block);
+        }
+        
+        this.secondNumber.appendChild(divisorContainer);
+        
+        // Create a container for the result
+        const resultContainer = document.createElement('div');
+        resultContainer.className = 'blocks-line';
+        
+        // Calculate how many blocks per group
+        const blocksPerGroup = total / divisor;
+        
+        // Create groups of blocks representing the result
+        for (let i = 0; i < divisor; i++) {
+            const group = document.createElement('div');
+            group.className = 'fraction-group';
+            group.style.display = 'inline-block';
+            group.style.margin = '0 5px';
+            group.style.border = '1px solid #ccc';
+            group.style.padding = '2px';
+            
+            for (let j = 0; j < blocksPerGroup; j++) {
+                const block = document.createElement('div');
+                block.className = 'block';
+                block.style.backgroundColor = '#2196F3';
+                group.appendChild(block);
+            }
+            
+            resultContainer.appendChild(group);
+        }
+        
+        this.totalNumber.appendChild(resultContainer);
+        
         this.blocksContainer.classList.remove('hidden');
     }
 }

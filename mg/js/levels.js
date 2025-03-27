@@ -211,6 +211,40 @@ const CONCEPTS = {
             };
         }
     },
+    fraction_half: {
+        type: 'fraction_half',
+        generator: () => {
+            const total = Math.floor(Math.random() * 50) * 2; // Total number between 2 and 100
+            const half = total / 2;
+            console.log(total, half);
+            return {
+                question: `Half of ${total} is ?`,
+                answer: half,
+                explanation: `Half means dividing by 2. ${total} ÷ 2 = ${half}`,
+                visualization: {
+                    type: 'fraction_half',
+                    values: { total, divisor: 2 }
+                }
+            };
+        }
+    },
+    fraction_quarter: {
+        type: 'fraction_quarter',
+        generator: () => {
+            const total = Math.floor(Math.random() * 20) * 4; // Total number between 4 and 100
+            const quarter = total / 4;
+            console.log(total, quarter);
+            return {
+                question: `A quarter of ${total} is ?`,
+                answer: quarter,
+                explanation: `A quarter means dividing by 4. ${total} ÷ 4 = ${quarter}`,
+                visualization: {
+                    type: 'fraction_quarter',
+                    values: { total, divisor: 4 }
+                }
+            };
+        }
+    },
     time: {
         type: 'time',
         generator: () => {
@@ -339,6 +373,13 @@ const LEVELS = {
             CONCEPTS.multiplication,
             CONCEPTS.division,
             CONCEPTS.money
+        ]
+    },
+    grade2_2: {
+        name: 'Grade 2 - 2',
+        problems: [
+            CONCEPTS.fraction_half,
+            CONCEPTS.fraction_quarter
         ]
     },
     grade3_1: {
