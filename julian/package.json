@@ -15,5 +15,8 @@
   "license": "ISC",
   "devDependencies": {
     "vite-plugin-web-extension": "^4.4.3"
+  },
+  "dependencies": {
+    "@mozilla/readability": "^0.4.4"
   }
 }

@@ -4,6 +4,9 @@
 // Use the appropriate API namespace based on the browser
 const browserAPI = typeof browser !== 'undefined' ? browser : chrome;
 
+// Import Readability from Mozilla
+import { Readability } from '@mozilla/readability';
+
 // Create sidebar elements
 let sidebar = null;
 let sidebarVisible = false;
@@ -35,6 +38,8 @@ function initializeJulian() {
     } else if (message.action === "showError") {
       showSidebar();
       displayError(message.error);
+    } else if (message.action === "copyMainText") {
+      copyMainTextToClipboard(message.tabId);
     }
   });
 }
@@ -339,11 +344,50 @@ function formatResponse(text) {
 
 // Get the current tab ID
 function getCurrentTabId() {
-  return new Promise(resolve => {
-    browserAPI.runtime.sendMessage({ action: "getCurrentTabId" }, response => {
-      resolve(response.tabId);
+  return new Promise((resolve) => {
+    browserAPI.runtime.sendMessage({action: "getCurrentTabId"}, (response) => {
+      resolve(response?.tabId);
     });
   });
+}
+
+// Extract and copy main text in reader mode format
+function copyMainTextToClipboard(tabId) {
+  try {
+    // Use Mozilla's Readability to extract main content
+    const documentClone = document.cloneNode(true);
+    const reader = new Readability(documentClone);
+    const article = reader.parse();
+    
+    if (!article) {
+      throw new Error("Could not parse page content with Readability");
+    }
+    
+    // Format the content for clipboard
+    const title = article.title || document.title;
+    const content = article.textContent || article.content;
+    
+    // Format the text with title and content
+    const formattedText = `${title}\n\n${content}`;
+    
+    // Copy to clipboard
+    navigator.clipboard.writeText(formattedText)
+      .then(() => {
+        console.log("Text copied to clipboard");
+        // Notify background script that text was copied
+        browserAPI.runtime.sendMessage({
+          action: "textCopied",
+          tabId: tabId
+        });
+      })
+      .catch(err => {
+        console.error("Failed to copy text: ", err);
+        displayError("Failed to copy text: " + err.message);
+      });
+  } catch (error) {
+    console.error("Error extracting main content: ", error);
+    displayError("Error extracting main content: " + error.message);
+  }
 }
 
 // Initialize when the page is loaded

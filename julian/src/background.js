@@ -23,6 +23,12 @@ function createContextMenus() {
     title: "Generate with Julian",
     contexts: ["selection", "page"]
   });
+
+  browserAPI.contextMenus.create({
+    id: "copyMainText",
+    title: "Copy Main Text (Reader Mode)",
+    contexts: ["page"]
+  });
 }
 
 // Initialize extension
@@ -50,6 +56,9 @@ browserAPI.contextMenus.onClicked.addListener((info, tab) => {
       if (info.selectionText) {
         handleGenerate(info.selectionText, tab.id);
       }
+      break;
+    case "copyMainText":
+      browserAPI.tabs.sendMessage(tab.id, { action: "copyMainText", tabId: tab.id });
       break;
   }
 });
@@ -122,6 +131,17 @@ browserAPI.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (sender.tab) {
       sendResponse({ tabId: sender.tab.id });
     }
+    return true;
+  }
+
+  if (message.action === "textCopied") {
+    // Notify the user that text has been copied
+    browserAPI.tabs.sendMessage(message.tabId, { 
+      action: "showResponse", 
+      text: "Main text copied to clipboard in reader mode format.",
+      type: "info"
+    });
+    sendResponse({ success: true });
     return true;
   }
 });
