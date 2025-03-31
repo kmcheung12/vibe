@@ -135,10 +135,18 @@ browserAPI.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.action === "textCopied") {
+    // Calculate word count from the copied text
+    let wordCount = 0;
+    if (message.text) {
+      // Count words by splitting on whitespace and filtering out empty strings
+      const words = message.text.trim().split(/\s+/).filter(word => word.length > 0);
+      wordCount = words.length;
+    }
+    
     // Notify the user that text has been copied
     browserAPI.tabs.sendMessage(message.tabId, { 
       action: "showResponse", 
-      text: "Main text copied to clipboard in reader mode format.",
+      text: `${wordCount.toLocaleString()} words copied to clipboard in reader mode format.`,
       type: "info"
     });
     sendResponse({ success: true });

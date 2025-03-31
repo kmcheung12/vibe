@@ -377,6 +377,7 @@ function copyMainTextToClipboard(tabId) {
         // Notify background script that text was copied
         browserAPI.runtime.sendMessage({
           action: "textCopied",
+          text: formattedText,
           tabId: tabId
         });
       })
