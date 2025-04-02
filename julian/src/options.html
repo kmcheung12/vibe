@@ -101,30 +101,32 @@
       margin-top: 10px;
       font-size: 0.9em;
     }
+    .button-group {
+      display: flex;
+      gap: 10px;
+    }
+    .version-info {
+      text-align: right;
+      font-size: 0.8em;
+      color: #6c757d;
+      margin-top: -10px;
+      margin-bottom: 20px;
+    }
   </style>
 </head>
 <body>
   <h1>Julian Settings</h1>
+  <div class="version-info">Build: <span id="buildTime">Unknown</span></div>
   
   <div id="status" class="status" style="display: none;"></div>
   
   <section>
-    <h2>LLM Configuration</h2>
+    <h2>API Key Management</h2>
+    
     <div class="current-config">
       <p><strong>Current Provider:</strong> <span id="currentProvider"></span></p>
       <p><strong>API Key:</strong> <span id="currentApiKey" class="masked-key"></span></p>
       <p><strong>Model:</strong> <span id="currentModel"></span></p>
-    </div>
-    
-    <label for="llmProvider">Provider:</label>
-    <select id="llmProvider">
-      <option value="huggingface">Hugging Face</option>
-      <option value="custom">Custom</option>
-    </select>
-    
-    <div id="modelContainer">
-      <label for="model">Model:</label>
-      <input type="text" id="model" placeholder="e.g., facebook/bart-large-cnn">
     </div>
     
     <div id="customUrlContainer" style="display: none;">
@@ -132,10 +134,37 @@
       <input type="text" id="customUrl" placeholder="Enter custom API URL">
     </div>
     
-    <label for="apiKey">API Key:</label>
-    <input type="password" id="apiKey" placeholder="Enter API Key">
+    <p>Manage your API keys for different LLM providers.</p>
     
-    <button id="testApi">Test API Connection</button>
+    <table>
+      <thead>
+        <tr>
+          <th width="20%">Provider</th>
+          <th width="30%">API Key</th>
+          <th width="30%">API URL</th>
+          <th width="10%">Last Used</th>
+          <th width="10%">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="apiKeysList"></tbody>
+    </table>
+    
+    <div style="margin-top: 15px;">
+      <h3>Add New API Key</h3>
+      <label for="newProviderName">Provider Name:</label>
+      <input type="text" id="newProviderName" placeholder="e.g., OpenAI, Anthropic, etc.">
+      
+      <label for="newProviderKey">API Key:</label>
+      <input type="password" id="newProviderKey" placeholder="Enter API Key">
+      
+      <label for="newProviderUrl">API URL (Optional):</label>
+      <input type="text" id="newProviderUrl" placeholder="Enter API endpoint URL">
+      
+      <div class="button-group">
+        <button id="addApiKey">Add API Key</button>
+        <button id="testApi">Test API Connection</button>
+      </div>
+    </div>
   </section>
   
   <section>
@@ -170,37 +199,8 @@
     </label>
   </section>
   
-  <section>
-    <h2>API Key Management</h2>
-    <p>Manage your API keys for different LLM providers.</p>
-    
-    <table>
-      <thead>
-        <tr>
-          <th width="25%">Provider</th>
-          <th width="40%">API Key</th>
-          <th width="25%">Last Used</th>
-          <th width="10%">Actions</th>
-        </tr>
-      </thead>
-      <tbody id="apiKeysList"></tbody>
-    </table>
-    
-    <div style="margin-top: 15px;">
-      <h3>Add New API Key</h3>
-      <label for="newProviderName">Provider Name:</label>
-      <input type="text" id="newProviderName" placeholder="e.g., OpenAI, Anthropic, etc.">
-      
-      <label for="newProviderKey">API Key:</label>
-      <input type="password" id="newProviderKey" placeholder="Enter API Key">
-      
-      <button id="addApiKey" style="margin-top: 10px;">Add API Key</button>
-    </div>
-  </section>
-  
   <button id="save">Save All Settings</button>
-  <button id="reset">Reset to Defaults</button>
   
-  <script type="module" src="options.js"></script>
+  <script src="options.js" type="module"></script>
 </body>
 </html>

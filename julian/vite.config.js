@@ -6,6 +6,9 @@ export default defineConfig(({ mode }) => {
   const isFirefox = mode === "firefox";
   const browser = isFirefox ? "firefox" : "chrome";
   
+  // Generate build timestamp
+  const buildTime = new Date().toISOString();
+  
   return {
     plugins: [
       webExtension({
@@ -20,5 +23,9 @@ export default defineConfig(({ mode }) => {
         },
       }),
     ],
+    define: {
+      // Define global constants that will be replaced at build time
+      __BUILD_TIME__: JSON.stringify(buildTime),
+    },
   };
 });

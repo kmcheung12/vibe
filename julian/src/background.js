@@ -29,6 +29,20 @@ function createContextMenus() {
     title: "Copy Main Text (Reader Mode)",
     contexts: ["page"]
   });
+  
+  // Add a separator
+  browserAPI.contextMenus.create({
+    id: "separator",
+    type: "separator",
+    contexts: ["selection", "page"]
+  });
+  
+  // Add settings menu item
+  browserAPI.contextMenus.create({
+    id: "settings",
+    title: "Settings",
+    contexts: ["selection", "page"]
+  });
 }
 
 // Initialize extension
@@ -59,6 +73,10 @@ browserAPI.contextMenus.onClicked.addListener((info, tab) => {
       break;
     case "copyMainText":
       browserAPI.tabs.sendMessage(tab.id, { action: "copyMainText", tabId: tab.id });
+      break;
+    case "settings":
+      // Open the options page
+      browserAPI.runtime.openOptionsPage();
       break;
   }
 });
@@ -187,19 +205,53 @@ function fetchAIResponse(config, prompt) {
       const apiKeyUsage = data.apiKeyUsage || {};
       let apiKey = config.apiKey;
       let providerName = config.provider;
+      let customApiUrl = config.customUrl;
       
       // Use provider-specific API key if available
       if (config.provider === "huggingface" && providerApiKeys.huggingface) {
-        apiKey = providerApiKeys.huggingface;
+        // Handle both string and object formats
+        if (typeof providerApiKeys.huggingface === 'string') {
+          apiKey = providerApiKeys.huggingface;
+        } else {
+          apiKey = providerApiKeys.huggingface.key;
+          // Use custom URL if provided
+          if (providerApiKeys.huggingface.url) {
+            customApiUrl = providerApiKeys.huggingface.url;
+          }
+        }
       } else if (config.provider === "custom" && providerApiKeys.custom) {
-        apiKey = providerApiKeys.custom;
+        // Handle both string and object formats
+        if (typeof providerApiKeys.custom === 'string') {
+          apiKey = providerApiKeys.custom;
+        } else {
+          apiKey = providerApiKeys.custom.key;
+          // Use custom URL if provided and not already set in config
+          if (providerApiKeys.custom.url && !config.customUrl) {
+            customApiUrl = providerApiKeys.custom.url;
+          }
+        }
       } else {
         // Check if we're using a custom provider from the providerApiKeys
-        Object.entries(providerApiKeys).forEach(([provider, key]) => {
+        Object.entries(providerApiKeys).forEach(([provider, keyData]) => {
           if (provider !== "huggingface" && provider !== "custom") {
-            if (config.customUrl && config.customUrl.includes(provider)) {
-              apiKey = key;
-              providerName = provider;
+            // Check if the custom URL includes the provider name
+            const providerInUrl = config.customUrl && config.customUrl.includes(provider);
+            
+            // Handle both string and object formats
+            if (typeof keyData === 'string') {
+              if (providerInUrl) {
+                apiKey = keyData;
+                providerName = provider;
+              }
+            } else {
+              if (providerInUrl || (keyData.url && config.customUrl === keyData.url)) {
+                apiKey = keyData.key;
+                providerName = provider;
+                // Use the provider's URL if not already set
+                if (keyData.url && !customApiUrl) {
+                  customApiUrl = keyData.url;
+                }
+              }
             }
           }
         });
@@ -219,7 +271,8 @@ function fetchAIResponse(config, prompt) {
 
       switch (config.provider) {
         case "huggingface":
-          url = `https://api-inference.huggingface.co/models/${config.model || "facebook/bart-large-cnn"}`;
+          // Use custom URL if provided, otherwise use the default Hugging Face API URL
+          url = customApiUrl || `https://api-inference.huggingface.co/models/${config.model || "facebook/bart-large-cnn"}`;
           headers["Authorization"] = `Bearer ${apiKey}`;
           // Use the correct format for Hugging Face inference API
           body = JSON.stringify({ 
@@ -231,21 +284,30 @@ function fetchAIResponse(config, prompt) {
           });
           break;
         case "custom":
-          if (!config.customUrl) {
+          if (!customApiUrl) {
             reject(new Error("Custom URL not set. Please configure in options."));
             return;
           }
-          url = config.customUrl;
+          url = customApiUrl;
           if (apiKey) {
             headers["Authorization"] = `Bearer ${apiKey}`;
           }
-          body = JSON.stringify({ inputs: prompt });
+          // Use a generic format for custom APIs
+          body = JSON.stringify({ 
+            prompt: prompt,
+            max_tokens: 500,
+            temperature: 0.7
+          });
           break;
         default:
-          reject(new Error("Unknown provider. Please configure in options."));
+          reject(new Error(`Unknown provider: ${config.provider}`));
           return;
       }
-
+      
+      // Update the last used timestamp for this provider
+      updateApiKeyLastUsed(providerName);
+      
+      // Make the API request
       fetch(url, {
         method: "POST",
         headers: headers,
@@ -253,18 +315,17 @@ function fetchAIResponse(config, prompt) {
       })
       .then(response => {
         if (!response.ok) {
-          throw new Error(`API request failed with status ${response.status}`);
+          return response.text().then(text => {
+            throw new Error(`API request failed: ${response.status} ${response.statusText} - ${text}`);
+          });
         }
         return response.json();
       })
       .then(data => {
-        // Update the last used timestamp for this provider
-        updateApiKeyLastUsed(providerName);
-        
-        // Format the response
         resolve(data);
       })
       .catch(error => {
+        console.error("Error in API request:", error);
         reject(error);
       });
     });
