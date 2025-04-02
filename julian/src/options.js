@@ -10,17 +10,8 @@ const DEFAULT_SETTINGS = {
     provider: "huggingface",
     model: "facebook/bart-large-cnn",
     apiKey: "",
-    customUrl: ""
-  },
-  // Store API keys for each provider separately
-  providerApiKeys: {
-    huggingface: "",
-    custom: ""
-  },
-  // Store API key usage information
-  apiKeyUsage: {
-    huggingface: { lastUsed: null },
-    custom: { lastUsed: null }
+    customUrl: "",
+    lastUsed: null
   },
   promptRecipes: [
     { name: "Ask Julian", prompt: "Answer the following question: {text}" },
@@ -86,13 +77,11 @@ function setBuildTime() {
 // Load settings from storage
 function loadSettings() {
   // Use Promise-based approach for Firefox compatibility
-  getFromStorage(["llmConfig", "promptRecipes", "generalSettings", "providerApiKeys", "apiKeyUsage"]).then(data => {
+  getFromStorage(["llmConfig", "promptRecipes", "generalSettings"]).then(data => {
     const mergedSettings = {
       llmConfig: data.llmConfig || DEFAULT_SETTINGS.llmConfig,
       promptRecipes: data.promptRecipes || DEFAULT_SETTINGS.promptRecipes,
-      generalSettings: data.generalSettings || DEFAULT_SETTINGS.generalSettings,
-      providerApiKeys: data.providerApiKeys || DEFAULT_SETTINGS.providerApiKeys,
-      apiKeyUsage: data.apiKeyUsage || DEFAULT_SETTINGS.apiKeyUsage
+      generalSettings: data.generalSettings || DEFAULT_SETTINGS.generalSettings
     };
     
     // Update the current configuration display
@@ -101,7 +90,7 @@ function loadSettings() {
     // Populate form fields
     populateFormFields(mergedSettings);
     renderRecipes(mergedSettings.promptRecipes);
-    renderApiKeys(mergedSettings.providerApiKeys, mergedSettings.apiKeyUsage);
+    renderApiKeys(mergedSettings.llmConfig);
   });
 }
 
@@ -246,52 +235,25 @@ function renderRecipes(recipes) {
 }
 
 // Render API keys management table
-function renderApiKeys(providerApiKeys, apiKeyUsage) {
+function renderApiKeys(llmConfig) {
   elements.apiKeysList.innerHTML = "";
   
   // Get current provider from storage
   getFromStorage(["llmConfig"]).then(data => {
-    const llmConfig = data.llmConfig || DEFAULT_SETTINGS.llmConfig;
-    const currentProvider = llmConfig.provider;
+    const currentLlmConfig = data.llmConfig || DEFAULT_SETTINGS.llmConfig;
+    const currentProvider = currentLlmConfig.provider;
     
-    // Convert the providerApiKeys object to an array for easier iteration
-    const apiKeysArray = Object.entries(providerApiKeys).map(([provider, keyData]) => {
-      // Handle both string (legacy) and object format
-      const key = typeof keyData === 'string' ? keyData : keyData.key;
-      const url = typeof keyData === 'string' ? '' : keyData.url || '';
-      
-      return {
-        provider,
-        key,
-        url,
-        lastUsed: apiKeyUsage[provider]?.lastUsed || null,
-        isCurrent: provider === currentProvider
-      };
+    // Create an array of providers from llmConfig
+    const apiKeysArray = [];
+    
+    // Add the current provider
+    apiKeysArray.push({
+      provider: currentLlmConfig.provider,
+      key: currentLlmConfig.apiKey || "",
+      url: currentLlmConfig.customUrl || "",
+      lastUsed: currentLlmConfig.lastUsed || null,
+      isCurrent: true
     });
-    
-    // Add custom providers from apiKeyUsage that might not be in the default providerApiKeys
-    Object.entries(apiKeyUsage).forEach(([provider, usage]) => {
-      if (!providerApiKeys.hasOwnProperty(provider) && provider !== "huggingface" && provider !== "custom") {
-        apiKeysArray.push({
-          provider,
-          key: "",
-          url: "",
-          lastUsed: usage.lastUsed || null,
-          isCurrent: provider === currentProvider
-        });
-      }
-    });
-    
-    // Ensure the current provider is in the list, even if it has no key
-    if (!apiKeysArray.some(item => item.provider === currentProvider)) {
-      apiKeysArray.push({
-        provider: currentProvider,
-        key: llmConfig.apiKey || "",
-        url: llmConfig.customUrl || "",
-        lastUsed: null,
-        isCurrent: true
-      });
-    }
     
     // Check if there are any API keys to display
     if (apiKeysArray.length === 0) {
@@ -430,10 +392,7 @@ function setCurrentProvider(provider, key, url) {
       updateCurrentConfigDisplay(llmConfig);
       
       // Re-render the API keys list to update the current indicator
-      getFromStorage(["providerApiKeys", "apiKeyUsage"]).then(data => {
-        renderApiKeys(data.providerApiKeys || DEFAULT_SETTINGS.providerApiKeys, 
-                      data.apiKeyUsage || DEFAULT_SETTINGS.apiKeyUsage);
-      });
+      renderApiKeys(llmConfig);
     });
   });
 }
@@ -492,35 +451,16 @@ function addNewApiKey() {
     return;
   }
   
-  getFromStorage(["providerApiKeys", "apiKeyUsage", "llmConfig"]).then(data => {
-    const providerApiKeys = data.providerApiKeys || DEFAULT_SETTINGS.providerApiKeys;
-    const apiKeyUsage = data.apiKeyUsage || DEFAULT_SETTINGS.apiKeyUsage;
+  getFromStorage(["llmConfig"]).then(data => {
     const llmConfig = data.llmConfig || DEFAULT_SETTINGS.llmConfig;
     
-    // Convert provider name to lowercase and replace spaces with underscores for storage
-    const normalizedProviderName = providerName.toLowerCase().replace(/\s+/g, '_');
+    // Update the llmConfig with the new API key
+    llmConfig.provider = providerName;
+    llmConfig.apiKey = apiKey;
+    llmConfig.customUrl = apiUrl;
     
-    // Add or update the API key with URL
-    providerApiKeys[normalizedProviderName] = {
-      key: apiKey,
-      url: apiUrl
-    };
-    
-    // Initialize usage tracking if it doesn't exist
-    if (!apiKeyUsage[normalizedProviderName]) {
-      apiKeyUsage[normalizedProviderName] = { lastUsed: null };
-    }
-    
-    // If this is the first API key, set it as the current provider
-    if (Object.keys(providerApiKeys).length === 1 || normalizedProviderName === llmConfig.provider) {
-      llmConfig.apiKey = apiKey;
-      if (apiUrl) {
-        llmConfig.customUrl = apiUrl;
-      }
-    }
-    
-    // Save the updated API keys and config
-    setToStorage({ providerApiKeys, apiKeyUsage, llmConfig }).then(() => {
+    // Save the updated config
+    setToStorage({ llmConfig }).then(() => {
       showStatus(`API key for ${providerName} added successfully!`, "success");
       
       // Clear the form fields
@@ -532,7 +472,7 @@ function addNewApiKey() {
       updateCurrentConfigDisplay(llmConfig);
       
       // Re-render the API keys list
-      renderApiKeys(providerApiKeys, apiKeyUsage);
+      renderApiKeys(llmConfig);
     });
   });
 }
@@ -543,62 +483,39 @@ function deleteApiKey(provider) {
     return;
   }
   
-  getFromStorage(["providerApiKeys", "apiKeyUsage", "llmConfig"]).then(data => {
-    const providerApiKeys = data.providerApiKeys || DEFAULT_SETTINGS.providerApiKeys;
-    const apiKeyUsage = data.apiKeyUsage || DEFAULT_SETTINGS.apiKeyUsage;
+  getFromStorage(["llmConfig"]).then(data => {
     const llmConfig = data.llmConfig || DEFAULT_SETTINGS.llmConfig;
     
-    // Check if this is a built-in provider (huggingface or custom)
-    if (provider === "huggingface" || provider === "custom") {
-      // For built-in providers, just clear the key but keep the entry
-      // Check if it's already an object or a string
-      if (typeof providerApiKeys[provider] === 'string') {
-        providerApiKeys[provider] = { key: "", url: "" };
-      } else {
-        providerApiKeys[provider].key = "";
-      }
-    } else {
-      // For custom providers, remove the entry entirely
-      delete providerApiKeys[provider];
-      delete apiKeyUsage[provider];
-    }
+    // Reset the llmConfig
+    llmConfig.provider = "huggingface";
+    llmConfig.apiKey = "";
+    llmConfig.customUrl = "";
     
-    // If the deleted key was the current provider, reset the llmConfig
-    if (provider === llmConfig.provider) {
-      llmConfig.apiKey = "";
-      if (provider === "custom") {
-        llmConfig.customUrl = "";
-      }
-    }
-    
-    // Save the updated API keys
-    setToStorage({ providerApiKeys, apiKeyUsage, llmConfig }).then(() => {
+    // Save the updated config
+    setToStorage({ llmConfig }).then(() => {
       showStatus(`API key for ${formatProviderName(provider)} deleted successfully!`, "success");
       
       // Update the current configuration display
       updateCurrentConfigDisplay(llmConfig);
       
       // Re-render the API keys list
-      renderApiKeys(providerApiKeys, apiKeyUsage);
+      renderApiKeys(llmConfig);
     });
   });
 }
 
 // Update the last used timestamp for an API key
 function updateApiKeyLastUsed(provider) {
-  getFromStorage(["apiKeyUsage"]).then(data => {
-    const apiKeyUsage = data.apiKeyUsage || DEFAULT_SETTINGS.apiKeyUsage;
+  getFromStorage(["llmConfig"]).then(data => {
+    const llmConfig = data.llmConfig || DEFAULT_SETTINGS.llmConfig;
     
-    // Initialize if it doesn't exist
-    if (!apiKeyUsage[provider]) {
-      apiKeyUsage[provider] = {};
+    // Update the timestamp if this is the current provider
+    if (llmConfig.provider === provider) {
+      llmConfig.lastUsed = Date.now();
+      
+      // Save the updated usage data
+      setToStorage({ llmConfig });
     }
-    
-    // Update the timestamp
-    apiKeyUsage[provider].lastUsed = Date.now();
-    
-    // Save the updated usage data
-    setToStorage({ apiKeyUsage });
   });
 }
 
@@ -628,10 +545,8 @@ function getFormGeneralSettings() {
 
 // Save settings
 function saveSettings() {
-  getFromStorage(["llmConfig", "providerApiKeys", "apiKeyUsage"]).then(data => {
+  getFromStorage(["llmConfig"]).then(data => {
     const llmConfig = data.llmConfig || DEFAULT_SETTINGS.llmConfig;
-    const providerApiKeys = data.providerApiKeys || DEFAULT_SETTINGS.providerApiKeys;
-    const apiKeyUsage = data.apiKeyUsage || DEFAULT_SETTINGS.apiKeyUsage;
     
     // Get custom URL if visible
     if (elements.customUrlContainer.style.display !== "none") {
@@ -646,9 +561,7 @@ function saveSettings() {
     setToStorage({
       llmConfig,
       promptRecipes,
-      generalSettings,
-      providerApiKeys,
-      apiKeyUsage
+      generalSettings
     }).then(() => {
       showStatus("Settings saved successfully!", "success");
     });
