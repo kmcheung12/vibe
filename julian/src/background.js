@@ -3,6 +3,8 @@
 
 // Import storage utilities
 import { browserAPI, getFromStorage, setToStorage } from './storage.js';
+// Import default settings
+import { DEFAULT_SETTINGS } from './defaults.js';
 
 // Create context menu items
 function createContextMenus() {
@@ -85,12 +87,17 @@ browserAPI.contextMenus.onClicked.addListener((info, tab) => {
 browserAPI.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log("Received message:", message);
   if (message.action === "summarize") {
-    getFromStorage(["llmConfig", "promptRecipes"]).then(data => {
+    getFromStorage(["providers", "currentProviderId", "promptRecipes"]).then(data => {
       const recipe = data.promptRecipes?.find(r => r.name === "Summarize Page") || 
                     { prompt: "Summarize the following text: {text}" };
       const prompt = recipe.prompt.replace("{text}", message.text);
       
-      fetchAIResponse(data.llmConfig || getDefaultConfig(), prompt)
+      // Get the current provider
+      const providers = data.providers || DEFAULT_SETTINGS.providers;
+      const currentProviderId = data.currentProviderId || DEFAULT_SETTINGS.currentProviderId;
+      const currentProvider = providers.find(p => p.id === currentProviderId) || providers[0];
+      
+      fetchAIResponse(currentProvider, prompt)
         .then(response => {
           browserAPI.tabs.sendMessage(message.tabId, { 
             action: "showResponse", 
@@ -112,7 +119,7 @@ browserAPI.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
   
   if (message.action === "askJulian" || message.action === "generate") {
-    getFromStorage(["llmConfig", "promptRecipes"]).then(data => {
+    getFromStorage(["providers", "currentProviderId", "promptRecipes"]).then(data => {
       const recipeName = message.action === "askJulian" ? "Ask Julian" : "Generate Text";
       const defaultPrompt = message.action === "askJulian" 
         ? "Answer the following question: {text}" 
@@ -123,7 +130,12 @@ browserAPI.runtime.onMessage.addListener((message, sender, sendResponse) => {
       console.log("Recipe:", recipe);
       const prompt = recipe.prompt.replace("{text}", message.text);
       
-      fetchAIResponse(data.llmConfig || getDefaultConfig(), prompt)
+      // Get the current provider
+      const providers = data.providers || DEFAULT_SETTINGS.providers;
+      const currentProviderId = data.currentProviderId || DEFAULT_SETTINGS.currentProviderId;
+      const currentProvider = providers.find(p => p.id === currentProviderId) || providers[0];
+      
+      fetchAIResponse(currentProvider, prompt)
         .then(response => {
           browserAPI.tabs.sendMessage(message.tabId, { 
             action: "showResponse", 
@@ -197,154 +209,117 @@ function getDefaultConfig() {
   };
 }
 
-function fetchAIResponse(config, prompt) {
-  console.log("Fetching AI response with config:", config, "and prompt:", prompt) ;
+function fetchAIResponse(provider, prompt) {
+  console.log("Fetching AI response with provider:", provider, "and prompt:", prompt);
   return new Promise((resolve, reject) => {
-    getFromStorage(["providerApiKeys", "apiKeyUsage"]).then(data => {
-      const providerApiKeys = data.providerApiKeys || {};
-      const apiKeyUsage = data.apiKeyUsage || {};
-      let apiKey = config.apiKey;
-      let providerName = config.provider;
-      let customApiUrl = config.customUrl;
+    // Update the provider's last used timestamp
+    updateProviderLastUsed(provider.id);
+    
+    // Create a simple test prompt
+    const testPrompt = prompt;
+    
+    // Prepare headers based on schema
+    const headers = {};
+    
+    // Process schema headers with variable substitution
+    if (provider.schema.headers) {
+      Object.entries(provider.schema.headers).forEach(([key, value]) => {
+        if (value === null) return; // Skip null values
+        
+        // Replace variables in header values
+        if (typeof value === 'string') {
+          let processedValue = value;
+          
+          // Replace {apiKey} with the actual API key
+          if (value.includes('{apiKey}') && provider.apiKey) {
+            processedValue = processedValue.replace('{apiKey}', provider.apiKey);
+          }
+          
+          headers[key] = processedValue;
+        } else {
+          headers[key] = value;
+        }
+      });
+    }
+    
+    // Process schema body with variable substitution
+    let requestBody = {};
+    if (provider.schema.body) {
+      requestBody = JSON.parse(JSON.stringify(provider.schema.body)); // Deep clone
       
-      // Use provider-specific API key if available
-      if (config.provider === "huggingface" && providerApiKeys.huggingface) {
-        // Handle both string and object formats
-        if (typeof providerApiKeys.huggingface === 'string') {
-          apiKey = providerApiKeys.huggingface;
-        } else {
-          apiKey = providerApiKeys.huggingface.key;
-          // Use custom URL if provided
-          if (providerApiKeys.huggingface.url) {
-            customApiUrl = providerApiKeys.huggingface.url;
-          }
-        }
-      } else if (config.provider === "custom" && providerApiKeys.custom) {
-        // Handle both string and object formats
-        if (typeof providerApiKeys.custom === 'string') {
-          apiKey = providerApiKeys.custom;
-        } else {
-          apiKey = providerApiKeys.custom.key;
-          // Use custom URL if provided and not already set in config
-          if (providerApiKeys.custom.url && !config.customUrl) {
-            customApiUrl = providerApiKeys.custom.url;
-          }
-        }
-      } else {
-        // Check if we're using a custom provider from the providerApiKeys
-        Object.entries(providerApiKeys).forEach(([provider, keyData]) => {
-          if (provider !== "huggingface" && provider !== "custom") {
-            // Check if the custom URL includes the provider name
-            const providerInUrl = config.customUrl && config.customUrl.includes(provider);
-            
-            // Handle both string and object formats
-            if (typeof keyData === 'string') {
-              if (providerInUrl) {
-                apiKey = keyData;
-                providerName = provider;
-              }
-            } else {
-              if (providerInUrl || (keyData.url && config.customUrl === keyData.url)) {
-                apiKey = keyData.key;
-                providerName = provider;
-                // Use the provider's URL if not already set
-                if (keyData.url && !customApiUrl) {
-                  customApiUrl = keyData.url;
-                }
-              }
+      // Replace variables in the body
+      const replaceInObject = (obj) => {
+        for (const key in obj) {
+          if (typeof obj[key] === 'string') {
+            // Replace {prompt} with the test prompt
+            if (obj[key].includes('{prompt}')) {
+              obj[key] = obj[key].replace('{prompt}', testPrompt);
             }
+            
+            // Replace {model} with the model name
+            if (obj[key].includes('{model}')) {
+              obj[key] = obj[key].replace('{model}', provider.model);
+            }
+          } else if (typeof obj[key] === 'object' && obj[key] !== null) {
+            replaceInObject(obj[key]);
           }
+        }
+      };
+      
+      replaceInObject(requestBody);
+    }
+    
+    // Make the API request
+    fetch(provider.apiUrl, {
+      method: provider.schema.method || "POST",
+      headers: headers,
+      body: JSON.stringify(requestBody)
+    })
+    .then(response => {
+      if (!response.ok) {
+        return response.text().then(text => {
+          throw new Error(`API request failed: ${response.status} ${response.statusText} - ${text}`);
         });
       }
+      return response.json();
+    })
+    .then(data => {
+      // Process the response based on the provider type
+      let result;
       
-      // Check if we have an API key for providers that need one
-      if (!apiKey) {
-        reject(new Error("API key not set. Please configure in options."));
-        return;
+      // Handle different response formats
+      if (provider.id === "huggingface") {
+        result = data[0]?.generated_text || data.generated_text || data;
+      } else if (provider.id === "ollama") {
+        result = data.response || data;
+      } else {
+        // Default handling for other providers
+        result = data.generated_text || data.response || data.output || data.text || data;
       }
       
-      let url;
-      let body;
-      let headers = {
-        "Content-Type": "application/json"
-      };
-
-      switch (config.provider) {
-        case "huggingface":
-          // Use custom URL if provided, otherwise use the default Hugging Face API URL
-          url = customApiUrl || `https://api-inference.huggingface.co/models/${config.model || "facebook/bart-large-cnn"}`;
-          headers["Authorization"] = `Bearer ${apiKey}`;
-          // Use the correct format for Hugging Face inference API
-          body = JSON.stringify({ 
-            inputs: prompt,
-            options: {
-              use_cache: true,
-              wait_for_model: true
-            }
-          });
-          break;
-        case "custom":
-          if (!customApiUrl) {
-            reject(new Error("Custom URL not set. Please configure in options."));
-            return;
-          }
-          url = customApiUrl;
-          if (apiKey) {
-            headers["Authorization"] = `Bearer ${apiKey}`;
-          }
-          // Use a generic format for custom APIs
-          body = JSON.stringify({ 
-            prompt: prompt,
-            max_tokens: 500,
-            temperature: 0.7
-          });
-          break;
-        default:
-          reject(new Error(`Unknown provider: ${config.provider}`));
-          return;
-      }
-      
-      // Update the last used timestamp for this provider
-      updateApiKeyLastUsed(providerName);
-      
-      // Make the API request
-      fetch(url, {
-        method: "POST",
-        headers: headers,
-        body: body
-      })
-      .then(response => {
-        if (!response.ok) {
-          return response.text().then(text => {
-            throw new Error(`API request failed: ${response.status} ${response.statusText} - ${text}`);
-          });
-        }
-        return response.json();
-      })
-      .then(data => {
-        resolve(data);
-      })
-      .catch(error => {
-        console.error("Error in API request:", error);
-        reject(error);
-      });
+      resolve(result);
+    })
+    .catch(error => {
+      console.error("API request error:", error);
+      reject(error);
     });
   });
 }
 
-// Update the last used timestamp for an API key
-function updateApiKeyLastUsed(provider) {
-  getFromStorage(["apiKeyUsage"]).then(data => {
-    const apiKeyUsage = data.apiKeyUsage || {};
+// Update the last used timestamp for a provider
+function updateProviderLastUsed(providerId) {
+  getFromStorage(["providers"]).then(data => {
+    const providers = data.providers || DEFAULT_SETTINGS.providers;
     
-    // Update the last used timestamp
-    if (!apiKeyUsage[provider]) {
-      apiKeyUsage[provider] = {};
+    // Find the provider
+    const providerIndex = providers.findIndex(p => p.id === providerId);
+    
+    if (providerIndex >= 0) {
+      // Update the timestamp
+      providers[providerIndex].lastUsed = Date.now();
+      
+      // Save the updated data
+      setToStorage({ providers });
     }
-    
-    apiKeyUsage[provider].lastUsed = new Date().toISOString();
-    
-    // Save the updated usage data
-    setToStorage({ apiKeyUsage });
   });
 }
