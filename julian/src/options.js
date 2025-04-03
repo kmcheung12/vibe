@@ -2,7 +2,7 @@
 // Handles settings configuration and storage
 
 // Import storage utilities
-import { browserAPI, getFromStorage, setToStorage, clearStorage } from './storage.js';
+import { getFromStorage, setToStorage } from './storage.js';
 
 // Default settings
 const DEFAULT_SETTINGS = {
@@ -205,32 +205,6 @@ function testApiConnection() {
     const currentProviderId = data.currentProviderId || DEFAULT_SETTINGS.currentProviderId;
     const currentProvider = getCurrentProvider(providers, currentProviderId);
     
-    // Find a matching provider or use the current one
-    const providerId = providerName.toLowerCase().replace(/\s+/g, '_');
-    const matchingProvider = providers.find(p => p.id === providerId);
-    
-    // Create a test config based on the provider schema
-    const testConfig = {
-      id: providerId,
-      name: providerName,
-      apiKey: apiKey,
-      apiUrl: apiUrl,
-      model: matchingProvider?.model || currentProvider.model || "default",
-      schema: matchingProvider?.schema || currentProvider.schema || {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: {
-          inputs: "{prompt}",
-          options: {
-            use_cache: true,
-            wait_for_model: true
-          }
-        }
-      }
-    };
-    
     // Show testing status
     showStatus("Testing API connection...", "info");
     
@@ -241,8 +215,8 @@ function testApiConnection() {
     const headers = {};
     
     // Process schema headers with variable substitution
-    if (testConfig.schema.headers) {
-      Object.entries(testConfig.schema.headers).forEach(([key, value]) => {
+    if (currentProvider.schema.headers) {
+      Object.entries(currentProvider.schema.headers).forEach(([key, value]) => {
         if (value === null) return; // Skip null values
         
         // Replace variables in header values
@@ -263,8 +237,8 @@ function testApiConnection() {
     
     // Process schema body with variable substitution
     let requestBody = {};
-    if (testConfig.schema.body) {
-      requestBody = JSON.parse(JSON.stringify(testConfig.schema.body)); // Deep clone
+    if (currentProvider.schema.body) {
+      requestBody = JSON.parse(JSON.stringify(currentProvider.schema.body)); // Deep clone
       
       // Replace variables in the body
       const replaceInObject = (obj) => {
@@ -277,7 +251,7 @@ function testApiConnection() {
             
             // Replace {model} with the model name
             if (obj[key].includes('{model}')) {
-              obj[key] = obj[key].replace('{model}', testConfig.model);
+              obj[key] = obj[key].replace('{model}', currentProvider.model);
             }
           } else if (typeof obj[key] === 'object' && obj[key] !== null) {
             replaceInObject(obj[key]);
@@ -289,8 +263,8 @@ function testApiConnection() {
     }
     
     // Make a test request using the schema
-    fetch(testConfig.apiUrl, {
-      method: testConfig.schema.method || "POST",
+    fetch(currentProvider.apiUrl, {
+      method: currentProvider.schema.method,
       headers: headers,
       body: JSON.stringify(requestBody)
     })
@@ -502,17 +476,6 @@ function setCurrentProvider(providerId) {
       renderApiKeys(providers, currentProviderId);
     });
   });
-}
-
-// Format provider name for display
-function formatProviderName(provider) {
-  if (provider === "huggingface") return "Hugging Face";
-  if (provider === "ollama") return "Ollama";
-  if (provider === "custom") return "Custom";
-  // For custom providers, capitalize first letter of each word
-  return provider.split(/[_-]/).map(word => 
-    word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-  ).join(" ");
 }
 
 // Format last used date for display
