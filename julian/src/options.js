@@ -10,7 +10,7 @@ import { DEFAULT_SETTINGS } from './defaults.js';
 let elements = {};
 
 // Initialize the options page
-function init() {
+function init() { 
   // Get DOM elements
   elements = {
     status: document.getElementById("status"),
@@ -384,7 +384,12 @@ function renderApiKeys(providers, currentProviderId) {
       const setCurrentButton = document.createElement("button");
       setCurrentButton.textContent = "Set as Current";
       setCurrentButton.style.flex = "1";
-      setCurrentButton.onclick = () => setCurrentProvider(item.id);
+      setCurrentButton.onclick = () => {
+        elements.newProviderName.value = item.name;
+        elements.newProviderKey.value = item.key || "";
+        elements.newProviderUrl.value = item.url || "";
+        setCurrentProvider(item.id);
+      }
       buttonContainer.appendChild(setCurrentButton);
     }
     
