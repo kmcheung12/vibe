@@ -60,7 +60,7 @@ function init() {
   // Set up event listeners
   elements.testApi.addEventListener("click", testApiConnection);
   elements.addRecipe.addEventListener("click", addRecipe);
-  elements.addApiKey.addEventListener("click", addNewApiKey);
+  elements.addApiKey.addEventListener("click", addProvider);
   elements.save.addEventListener("click", saveSettings);
 }
 
@@ -143,7 +143,9 @@ function testApiConnection() {
     return;
   }
   
-  if (!apiKey) {
+  // Allow empty API key for localhost
+  const isLocalhost = apiUrl && (apiUrl.includes('localhost') || apiUrl.includes('127.0.0.1'));
+  if (!apiKey && !isLocalhost) {
     showStatus("Please enter an API key", "error");
     return;
   }
@@ -161,13 +163,20 @@ function testApiConnection() {
   // Create a simple test prompt
   const testPrompt = "Hello, this is a test.";
   
+  // Prepare headers
+  const headers = {
+    "Content-Type": "application/json"
+  };
+  
+  // Only add Authorization header if API key is provided
+  if (apiKey) {
+    headers["Authorization"] = `Bearer ${testConfig.apiKey}`;
+  }
+  
   // Make a test request
   fetch(testConfig.customUrl, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${testConfig.apiKey}`
-    },
+    headers: headers,
     body: JSON.stringify({ 
       inputs: testPrompt,
       options: {
@@ -435,8 +444,8 @@ function deleteRecipe(index) {
   });
 }
 
-// Add a new API key
-function addNewApiKey() {
+// Add a new provider
+function addProvider() {
   const providerName = elements.newProviderName.value.trim();
   const apiKey = elements.newProviderKey.value.trim();
   const apiUrl = elements.newProviderUrl.value.trim();
@@ -446,7 +455,9 @@ function addNewApiKey() {
     return;
   }
   
-  if (!apiKey) {
+  // Allow empty API key for localhost
+  const isLocalhost = apiUrl && (apiUrl.includes('localhost') || apiUrl.includes('127.0.0.1'));
+  if (!apiKey && !isLocalhost) {
     showStatus("Please enter an API key", "error");
     return;
   }
@@ -454,14 +465,14 @@ function addNewApiKey() {
   getFromStorage(["llmConfig"]).then(data => {
     const llmConfig = data.llmConfig || DEFAULT_SETTINGS.llmConfig;
     
-    // Update the llmConfig with the new API key
+    // Update the llmConfig with the new provider
     llmConfig.provider = providerName;
     llmConfig.apiKey = apiKey;
     llmConfig.customUrl = apiUrl;
     
     // Save the updated config
     setToStorage({ llmConfig }).then(() => {
-      showStatus(`API key for ${providerName} added successfully!`, "success");
+      showStatus(`${providerName} added successfully!`, "success");
       
       // Clear the form fields
       elements.newProviderName.value = "";
