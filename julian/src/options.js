@@ -4,6 +4,35 @@
 // Import storage utilities
 import { getFromStorage, setToStorage } from './storage.js';
 
+// Default schemas for different providers
+const DEFAULT_SCHEMAS = {
+  "huggingface": {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer {apiKey}"
+    },
+    body: {
+      inputs: "{prompt}",
+      options: {
+        use_cache: true,
+        wait_for_model: true
+      }
+    }
+  },
+  "ollama": {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: {
+      model: "{model}",
+      "stream": false,
+      prompt: "{prompt}"
+    }
+  }
+};
+
 // Default settings
 const DEFAULT_SETTINGS = {
   providers: [
@@ -14,20 +43,7 @@ const DEFAULT_SETTINGS = {
       apiKey: "",
       apiUrl: "https://api-inference.huggingface.co/models/facebook/bart-large-cnn",
       lastUsed: null,
-      schema: {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer {apiKey}"
-        },
-        body: {
-          inputs: "{prompt}",
-          options: {
-            use_cache: true,
-            wait_for_model: true
-          }
-        }
-      }
+      schema: DEFAULT_SCHEMAS.huggingface
     },
     {
       id: "ollama",
@@ -36,17 +52,7 @@ const DEFAULT_SETTINGS = {
       apiKey: "",
       apiUrl: "http://localhost:11434/api/generate",
       lastUsed: null,
-      schema: {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: {
-          model: "{model}",
-          "stream": false,
-          prompt: "{prompt}"
-        }
-      }
+      schema: DEFAULT_SCHEMAS.ollama
     }
   ],
   currentProviderId: "huggingface",
@@ -115,23 +121,29 @@ function setBuildTime() {
 function loadSettings() {
   // Use Promise-based approach for Firefox compatibility
   getFromStorage(["providers", "currentProviderId", "promptRecipes", "generalSettings"]).then(data => {
-    const mergedSettings = {
-      providers: data.providers || DEFAULT_SETTINGS.providers,
-      currentProviderId: data.currentProviderId || DEFAULT_SETTINGS.currentProviderId,
-      promptRecipes: data.promptRecipes || DEFAULT_SETTINGS.promptRecipes,
-      generalSettings: data.generalSettings || DEFAULT_SETTINGS.generalSettings
-    };
+    console.log(data);
+    let settings;
+    if (Object.keys(data).length === 0) {
+      settings = DEFAULT_SETTINGS;
+      setToStorage(settings).then(() => {
+        console.log("Settings initialized with default values.");
+      }).catch(error => {
+        console.error("Failed to initialize settings with default values:", error);
+      });
+    } else {
+      settings = data;
+    }
     
     // Get the current provider
-    const currentProvider = getCurrentProvider(mergedSettings.providers, mergedSettings.currentProviderId);
+    const currentProvider = getCurrentProvider(settings.providers, settings.currentProviderId);
     
     // Update the current configuration display
     updateCurrentConfigDisplay(currentProvider);
     
     // Populate form fields
-    populateFormFields(mergedSettings);
-    renderRecipes(mergedSettings.promptRecipes);
-    renderApiKeys(mergedSettings.providers, mergedSettings.currentProviderId);
+    populateFormFields(settings);
+    renderRecipes(settings.promptRecipes);
+    renderApiKeys(settings.providers, settings.currentProviderId);
   });
 }
 
@@ -623,24 +635,6 @@ function deleteApiKey(providerId) {
         // Re-render the API keys list
         renderApiKeys(providers, newCurrentProviderId);
       });
-    }
-  });
-}
-
-// Update the last used timestamp for an API key
-function updateApiKeyLastUsed(providerId) {
-  getFromStorage(["providers"]).then(data => {
-    const providers = data.providers || DEFAULT_SETTINGS.providers;
-    
-    // Find the provider
-    const providerIndex = providers.findIndex(p => p.id === providerId);
-    
-    if (providerIndex >= 0) {
-      // Update the timestamp
-      providers[providerIndex].lastUsed = Date.now();
-      
-      // Save the updated data
-      setToStorage({ providers });
     }
   });
 }
