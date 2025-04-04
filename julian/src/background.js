@@ -5,6 +5,8 @@
 import { browserAPI, getFromStorage, setToStorage } from './storage.js';
 // Import default settings
 import { DEFAULT_SETTINGS } from './defaults.js';
+// Import service functions
+import { ask, summarize } from './service.js';
 
 // Create context menu items
 function createContextMenus() {
@@ -87,22 +89,18 @@ browserAPI.contextMenus.onClicked.addListener((info, tab) => {
 browserAPI.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log("Received message:", message);
   if (message.action === "summarize") {
-    getFromStorage(["providers", "currentProviderId", "promptRecipes"]).then(data => {
-      const recipe = data.promptRecipes?.find(r => r.name === "Summarize Page") || 
-                    { prompt: "Summarize the following text: {text}" };
-      const prompt = recipe.prompt.replace("{text}", message.text);
-      
-      // Get the current provider
-      const providers = data.providers || DEFAULT_SETTINGS.providers;
-      const currentProviderId = data.currentProviderId || DEFAULT_SETTINGS.currentProviderId;
-      const currentProvider = providers.find(p => p.id === currentProviderId) || providers[0];
-      
-      fetchAIResponse(currentProvider, prompt)
+    const useStreaming = message.stream === true;
+    console.log(useStreaming);
+    if (!useStreaming) {
+
+      // Non-streaming mode
+      summarize(message.text, false)
         .then(response => {
           browserAPI.tabs.sendMessage(message.tabId, { 
             action: "showResponse", 
-            text: response.generated_text || response,
-            type: "summarize"
+            text: response.text,
+            type: "summarize",
+            completed: response.completed
           });
           sendResponse({ success: true }); // Send response to keep promise alive
         })
@@ -113,46 +111,112 @@ browserAPI.runtime.onMessage.addListener((message, sender, sendResponse) => {
           });
           sendResponse({ success: false, error: error.toString() }); // Send response to keep promise alive
         });
-    });
+    } else {
+      // Streaming mode
+      console.log("Streaming mode")
+      summarize("Hello, this is a test.", true)
+        .then(async streamResponse => {
+          // Process the stream
+          try {
+            while (true) {
+              
+              const chunk = await streamResponse.read();
+              console.log("Processing chunk...", chunk.text);
+              // Send the chunk to the content script
+              browserAPI.tabs.sendMessage(message.tabId, {
+                action: "showResponse",
+                text: chunk.text,
+                type: "summarize",
+                completed: chunk.completed
+              });
+              
+              // If this is the last chunk, break the loop
+              if (chunk.completed) {
+                break;
+              }
+            }
+            sendResponse({ success: true });
+          } catch (error) {
+            browserAPI.tabs.sendMessage(message.tabId, {
+              action: "showError",
+              error: error.toString()
+            });
+            sendResponse({ success: false, error: error.toString() });
+          }
+        })
+        .catch(error => {
+          browserAPI.tabs.sendMessage(message.tabId, { 
+            action: "showError", 
+            error: error.toString() 
+          });
+          sendResponse({ success: false, error: error.toString() });
+        });
+    }
     
     return true; // Indicates async response
   }
   
   if (message.action === "askJulian" || message.action === "generate") {
-    getFromStorage(["providers", "currentProviderId", "promptRecipes"]).then(data => {
-      const recipeName = message.action === "askJulian" ? "Ask Julian" : "Generate Text";
-      const defaultPrompt = message.action === "askJulian" 
-        ? "Answer the following question: {text}" 
-        : "Generate text based on: {text}";
-      
-      const recipe = data.promptRecipes?.find(r => r.name === recipeName) || 
-                    { prompt: defaultPrompt };
-      console.log("Recipe:", recipe);
-      const prompt = recipe.prompt.replace("{text}", message.text);
-      
-      // Get the current provider
-      const providers = data.providers || DEFAULT_SETTINGS.providers;
-      const currentProviderId = data.currentProviderId || DEFAULT_SETTINGS.currentProviderId;
-      const currentProvider = providers.find(p => p.id === currentProviderId) || providers[0];
-      
-      fetchAIResponse(currentProvider, prompt)
+    const useStreaming = message.stream === true;
+    
+    if (!useStreaming) {
+      // Non-streaming mode
+      ask(message.text, false)
         .then(response => {
           browserAPI.tabs.sendMessage(message.tabId, { 
             action: "showResponse", 
-            text: response.generated_text || response,
-            type: message.action
+            text: response.text,
+            type: message.action === "askJulian" ? "ask" : "generate",
+            completed: response.completed
           });
           sendResponse({ success: true }); // Send response to keep promise alive
         })
         .catch(error => {
-          console.error("Error in background script:", error);
           browserAPI.tabs.sendMessage(message.tabId, { 
             action: "showError", 
             error: error.toString() 
           });
           sendResponse({ success: false, error: error.toString() }); // Send response to keep promise alive
         });
-    });
+    } else {
+      // Streaming mode
+      ask(message.text, true)
+        .then(async streamResponse => {
+          // Process the stream
+          try {
+            while (true) {
+              const chunk = await streamResponse.read();
+              
+              // Send the chunk to the content script
+              browserAPI.tabs.sendMessage(message.tabId, {
+                action: "showResponse",
+                text: chunk.text,
+                type: message.action === "askJulian" ? "ask" : "generate",
+                completed: chunk.completed
+              });
+              
+              // If this is the last chunk, break the loop
+              if (chunk.completed) {
+                break;
+              }
+            }
+            sendResponse({ success: true });
+          } catch (error) {
+            browserAPI.tabs.sendMessage(message.tabId, {
+              action: "showError",
+              error: error.toString()
+            });
+            sendResponse({ success: false, error: error.toString() });
+          }
+        })
+        .catch(error => {
+          browserAPI.tabs.sendMessage(message.tabId, { 
+            action: "showError", 
+            error: error.toString() 
+          });
+          sendResponse({ success: false, error: error.toString() });
+        });
+    }
     
     return true; // Indicates async response
   }
@@ -207,103 +271,6 @@ function getDefaultConfig() {
     apiKey: "",
     model: "facebook/bart-large-cnn"
   };
-}
-
-function fetchAIResponse(provider, prompt) {
-  console.log("Fetching AI response with provider:", provider, "and prompt:", prompt);
-  return new Promise((resolve, reject) => {
-    // Update the provider's last used timestamp
-    updateProviderLastUsed(provider.id);
-    
-    // Create a simple test prompt
-    const testPrompt = prompt;
-    
-    // Prepare headers based on schema
-    const headers = {};
-    
-    // Process schema headers with variable substitution
-    if (provider.schema.headers) {
-      Object.entries(provider.schema.headers).forEach(([key, value]) => {
-        if (value === null) return; // Skip null values
-        
-        // Replace variables in header values
-        if (typeof value === 'string') {
-          let processedValue = value;
-          
-          // Replace {apiKey} with the actual API key
-          if (value.includes('{apiKey}') && provider.apiKey) {
-            processedValue = processedValue.replace('{apiKey}', provider.apiKey);
-          }
-          
-          headers[key] = processedValue;
-        } else {
-          headers[key] = value;
-        }
-      });
-    }
-    
-    // Process schema body with variable substitution
-    let requestBody = {};
-    if (provider.schema.body) {
-      requestBody = JSON.parse(JSON.stringify(provider.schema.body)); // Deep clone
-      
-      // Replace variables in the body
-      const replaceInObject = (obj) => {
-        for (const key in obj) {
-          if (typeof obj[key] === 'string') {
-            // Replace {prompt} with the test prompt
-            if (obj[key].includes('{prompt}')) {
-              obj[key] = obj[key].replace('{prompt}', testPrompt);
-            }
-            
-            // Replace {model} with the model name
-            if (obj[key].includes('{model}')) {
-              obj[key] = obj[key].replace('{model}', provider.model);
-            }
-          } else if (typeof obj[key] === 'object' && obj[key] !== null) {
-            replaceInObject(obj[key]);
-          }
-        }
-      };
-      
-      replaceInObject(requestBody);
-    }
-    
-    // Make the API request
-    fetch(provider.apiUrl, {
-      method: provider.schema.method || "POST",
-      headers: headers,
-      body: JSON.stringify(requestBody)
-    })
-    .then(response => {
-      if (!response.ok) {
-        return response.text().then(text => {
-          throw new Error(`API request failed: ${response.status} ${response.statusText} - ${text}`);
-        });
-      }
-      return response.json();
-    })
-    .then(data => {
-      // Process the response based on the provider type
-      let result;
-      
-      // Handle different response formats
-      if (provider.id === "huggingface") {
-        result = data[0]?.generated_text || data.generated_text || data;
-      } else if (provider.id === "ollama") {
-        result = data.response || data;
-      } else {
-        // Default handling for other providers
-        result = data.generated_text || data.response || data.output || data.text || data;
-      }
-      
-      resolve(result);
-    })
-    .catch(error => {
-      console.error("API request error:", error);
-      reject(error);
-    });
-  });
 }
 
 // Update the last used timestamp for a provider

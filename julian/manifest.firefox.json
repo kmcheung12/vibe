@@ -28,9 +28,7 @@
     "open_in_tab": true
   },
   "web_accessible_resources": [
-    "src/options.js",
-    "src/sidebar.js",
-    "src/sidebar.html"
+    "src/options.js"
   ],
   "browser_action": {
     "default_icon": {

@@ -23,7 +23,7 @@ export const DEFAULT_SCHEMAS = {
     },
     body: {
       model: "{model}",
-      "stream": false,
+      stream: false,
       prompt: "{prompt}"
     }
   }
@@ -51,7 +51,7 @@ export const DEFAULT_SETTINGS = {
       schema: DEFAULT_SCHEMAS.ollama
     }
   ],
-  currentProviderId: "huggingface",
+  currentProviderId: "ollama",
   promptRecipes: [
     { name: "Ask Julian", prompt: "Answer the following question: {text}" },
     { name: "Summarize Page", prompt: "Summarize the following text in a concise way: {text}" },

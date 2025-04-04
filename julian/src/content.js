@@ -10,6 +10,8 @@ import { Readability } from '@mozilla/readability';
 // Create sidebar elements
 let sidebar = null;
 let sidebarVisible = false;
+// Store intermediate streaming results
+let responseBuffer = '';
 
 // Initialize when the page loads
 function initializeJulian() {
@@ -17,11 +19,14 @@ function initializeJulian() {
   
   // Listen for messages from background script
   browserAPI.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    console.log("Content received message from background: ", message);
     if (message.action === "summarize") {
       const pageText = document.body.innerText;
+      responseBuffer = '';
       browserAPI.runtime.sendMessage({
         action: "summarize",
         text: pageText,
+        stream: true,
         tabId: message.tabId
       });
     } else if (message.action === "askJulian") {
@@ -34,7 +39,7 @@ function initializeJulian() {
       document.getElementById("julian-generate").click();
     } else if (message.action === "showResponse") {
       showSidebar();
-      displayResponse(message.text, message.type);
+      displayResponse(message.text, message.type, message.completed);
     } else if (message.action === "showError") {
       showSidebar();
       displayError(message.error);
@@ -158,6 +163,7 @@ function createSidebar() {
         browserAPI.runtime.sendMessage({
           action: "askJulian",
           text: text,
+          stream: true,
           tabId: tabId
         });
       });
@@ -182,6 +188,7 @@ function createSidebar() {
       browserAPI.runtime.sendMessage({
         action: "summarize",
         text: document.body.innerText,
+        stream: true,
         tabId: tabId
       });
     });
@@ -208,6 +215,7 @@ function createSidebar() {
         browserAPI.runtime.sendMessage({
           action: "generate",
           text: text,
+          stream: true,
           tabId: tabId
         });
       });
@@ -295,7 +303,7 @@ function displayLoading() {
 }
 
 // Display response in the sidebar
-function displayResponse(text, type) {
+function displayResponse(text, type, completed = true) {
   const responseArea = document.getElementById("julian-response");
   
   let title;
@@ -313,10 +321,20 @@ function displayResponse(text, type) {
       title = "Response";
   }
   
-  responseArea.innerHTML = `
-    <h3 style="margin-top: 0; color: #4a55af;">${title}</h3>
-    <div>${formatResponse(text)}</div>
-  `;
+  if (!completed) {
+    responseBuffer += text;
+    
+    responseArea.innerHTML = `
+      <h3 style="margin-top: 0; color: #4a55af;">${title}</h3>
+      <div>${formatResponse(responseBuffer)}</div>
+      <div class="streaming-indicator">Streaming...</div>
+    `;
+  } else {
+    responseArea.innerHTML = `
+      <h3 style="margin-top: 0; color: #4a55af;">${title}</h3>
+      <div>${formatResponse(responseBuffer)}</div>
+    `;
+  }
 }
 
 // Display error in the sidebar
@@ -354,11 +372,15 @@ function getCurrentTabId() {
 // Extract and copy main text in reader mode format
 function copyMainTextToClipboard(tabId) {
   try {
+    // Time how long it takes to extract main text
+    const startTime = performance.now();
+    console.log("Start copying main text to clipboard", startTime);
     // Use Mozilla's Readability to extract main content
     const documentClone = document.cloneNode(true);
     const reader = new Readability(documentClone);
     const article = reader.parse();
-    
+    const endTime = performance.now();
+    console.log(`Time to extract main text: ${endTime - startTime} ms`);
     if (!article) {
       throw new Error("Could not parse page content with Readability");
     }

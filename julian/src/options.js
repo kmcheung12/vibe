@@ -5,6 +5,8 @@
 import { getFromStorage, setToStorage } from './storage.js';
 // Import default settings and schemas
 import { DEFAULT_SETTINGS } from './defaults.js';
+// Import service functions
+import { ping } from './service.js';
 
 // DOM elements
 let elements = {};
@@ -150,83 +152,11 @@ function testApiConnection() {
     return;
   }
   
-  // Get the current provider schema to use as a base
-  getFromStorage(["providers", "currentProviderId"]).then(data => {
-    const providers = data.providers || DEFAULT_SETTINGS.providers;
-    const currentProviderId = data.currentProviderId || DEFAULT_SETTINGS.currentProviderId;
-    const currentProvider = getCurrentProvider(providers, currentProviderId);
-    
-    // Show testing status
-    showStatus("Testing API connection...", "info");
-    
-    // Create a simple test prompt
-    const testPrompt = "Hello, this is a test.";
-    
-    // Prepare headers based on schema
-    const headers = {};
-    
-    // Process schema headers with variable substitution
-    if (currentProvider.schema.headers) {
-      Object.entries(currentProvider.schema.headers).forEach(([key, value]) => {
-        if (value === null) return; // Skip null values
-        
-        // Replace variables in header values
-        if (typeof value === 'string') {
-          let processedValue = value;
-          
-          // Replace {apiKey} with the actual API key
-          if (value.includes('{apiKey}') && apiKey) {
-            processedValue = processedValue.replace('{apiKey}', apiKey);
-          }
-          
-          headers[key] = processedValue;
-        } else {
-          headers[key] = value;
-        }
-      });
-    }
-    
-    // Process schema body with variable substitution
-    let requestBody = {};
-    if (currentProvider.schema.body) {
-      requestBody = JSON.parse(JSON.stringify(currentProvider.schema.body)); // Deep clone
-      
-      // Replace variables in the body
-      const replaceInObject = (obj) => {
-        for (const key in obj) {
-          if (typeof obj[key] === 'string') {
-            // Replace {prompt} with the test prompt
-            if (obj[key].includes('{prompt}')) {
-              obj[key] = obj[key].replace('{prompt}', testPrompt);
-            }
-            
-            // Replace {model} with the model name
-            if (obj[key].includes('{model}')) {
-              obj[key] = obj[key].replace('{model}', currentProvider.model);
-            }
-          } else if (typeof obj[key] === 'object' && obj[key] !== null) {
-            replaceInObject(obj[key]);
-          }
-        }
-      };
-      
-      replaceInObject(requestBody);
-    }
-    
-    // Make a test request using the schema
-    fetch(currentProvider.apiUrl, {
-      method: currentProvider.schema.method,
-      headers: headers,
-      body: JSON.stringify(requestBody)
-    })
-    .then(response => {
-      if (!response.ok) {
-        return response.text().then(text => {
-          throw new Error(`API request failed: ${response.status} ${response.statusText} - ${text}`);
-        });
-      }
-      return response.json();
-    })
+  // Show testing status
+  showStatus("Testing API connection...", "info");
+  
+  // Use the service module to test the connection
+  ping()
     .then(data => {
       showStatus("API connection successful!", "success");
       console.log("API test response:", data);
@@ -235,7 +165,6 @@ function testApiConnection() {
       showStatus(`API connection failed: ${error.message}`, "error");
       console.error("API test error:", error);
     });
-  });
 }
 
 // Render prompt recipes table

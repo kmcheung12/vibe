@@ -14,9 +14,13 @@ const elements = {
   generateButton: document.getElementById('generate-button')
 };
 
+// Store intermediate streaming results
+let responseBuffer = '';
+
 // Initialize the sidebar
 function initSidebar() {
   // Set up event listeners
+  console.log("Init sidebar, sidebar.js");
   elements.closeButton.addEventListener('click', closeSidebar);
   elements.askButton.addEventListener('click', handleAskJulian);
   elements.summarizeButton.addEventListener('click', handleSummarizePage);
@@ -33,7 +37,8 @@ function initSidebar() {
   // Listen for messages from background script
   browserAPI.runtime.onMessage.addListener((message) => {
     if (message.action === 'showResponse') {
-      displayResponse(message.text, message.type);
+      console.log("Sidebar received message from background: ", message);
+      displayResponse(message.text, message.type, message.completed);
     } else if (message.action === 'showError') {
       displayError(message.error);
     }
@@ -50,10 +55,13 @@ function handleAskJulian() {
   const text = elements.inputText.value.trim();
   if (text) {
     displayLoading();
+    // Reset streaming buffer for new request
+    responseBuffer = '';
     browserAPI.runtime.sendMessage({
       action: 'askJulian',
       text: text,
-      tabId: getCurrentTabId()
+      tabId: getCurrentTabId(),
+      stream: true // Enable streaming mode
     });
   }
 }
@@ -61,6 +69,8 @@ function handleAskJulian() {
 // Handle "Summarize Page" button click
 function handleSummarizePage() {
   displayLoading();
+  // Reset streaming buffer for new request
+  responseBuffer = '';
   // Use Promise-based approach for Firefox compatibility
   const queryPromise = typeof browser !== 'undefined' ?
     browserAPI.tabs.query({ active: true, currentWindow: true }) :
@@ -69,7 +79,11 @@ function handleSummarizePage() {
     });
     
   queryPromise.then(tabs => {
-    browserAPI.tabs.sendMessage(tabs[0].id, { action: 'summarize', tabId: tabs[0].id });
+    browserAPI.tabs.sendMessage(tabs[0].id, { 
+      action: 'summarize', 
+      tabId: tabs[0].id,
+      stream: true // Enable streaming mode
+    });
   });
 }
 
@@ -78,10 +92,13 @@ function handleGenerateText() {
   const text = elements.inputText.value.trim();
   if (text) {
     displayLoading();
+    // Reset streaming buffer for new request
+    responseBuffer = '';
     browserAPI.runtime.sendMessage({
       action: 'generate',
       text: text,
-      tabId: getCurrentTabId()
+      tabId: getCurrentTabId(),
+      stream: true // Enable streaming mode
     });
   }
 }
@@ -96,13 +113,14 @@ function displayLoading() {
 }
 
 // Display response in the sidebar
-function displayResponse(text, type) {
+function displayResponse(text, type, completed = true) {
+  console.log('Sidebar displaying response:', text, type, completed);
   let title;
   switch (type) {
     case 'summarize':
       title = 'Page Summary';
       break;
-    case 'askJulian':
+    case 'ask':
       title = 'Julian\'s Answer';
       break;
     case 'generate':
@@ -112,14 +130,38 @@ function displayResponse(text, type) {
       title = 'Response';
   }
   
-  elements.responseArea.innerHTML = `
-    <h3 style="margin-top: 0; color: #4a55af;">${title}</h3>
-    <div>${formatResponse(text)}</div>
-  `;
+  // For streaming responses, accumulate text until completed
+  if (!completed) {
+    responseBuffer += text;
+    
+    elements.responseArea.innerHTML = `
+      <h3 style="margin-top: 0; color: #4a55af;">${title}</h3>
+      <div>${formatResponse(responseBuffer)}</div>
+      <div class="streaming-indicator">Streaming...</div>
+    `;
+  } else {
+    // If this is a completed response
+    if (text) {
+      // If text is provided, use it directly (non-streaming case)
+      elements.responseArea.innerHTML = `
+        <h3 style="margin-top: 0; color: #4a55af;">${title}</h3>
+        <div>${formatResponse(text)}</div>
+      `;
+    } else {
+      // If no text is provided, use the accumulated buffer (end of streaming)
+      elements.responseArea.innerHTML = `
+        <h3 style="margin-top: 0; color: #4a55af;">${title}</h3>
+        <div>${formatResponse(responseBuffer)}</div>
+      `;
+      // Reset the buffer after displaying the final response
+      responseBuffer = '';
+    }
+  }
 }
 
 // Display error in the sidebar
 function displayError(error) {
+  console.log('Displaying error:', error);
   elements.responseArea.innerHTML = `
     <h3 style="margin-top: 0; color: #e74c3c;">Error</h3>
     <div style="color: #e74c3c;">${error}</div>
