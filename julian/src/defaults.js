@@ -46,7 +46,7 @@ export const DEFAULT_SETTINGS = {
       name: "Ollama",
       model: "mistral",
       apiKey: "",
-      apiUrl: "http://localhost:11434/api/generate",
+      apiUrl: "http://192.168.1.84:11434/api/generate",
       lastUsed: null,
       schema: DEFAULT_SCHEMAS.ollama
     }

@@ -102,46 +102,43 @@ browserAPI.runtime.onMessage.addListener((message, sender, sendResponse) => {
             type: "summarize",
             completed: response.completed
           });
-          sendResponse({ success: true }); // Send response to keep promise alive
         })
         .catch(error => {
+          console.error(error);
           browserAPI.tabs.sendMessage(message.tabId, { 
             action: "showError", 
             error: error.toString() 
           });
-          sendResponse({ success: false, error: error.toString() }); // Send response to keep promise alive
         });
     } else {
       // Streaming mode
-      console.log("Streaming mode")
-      summarize("Hello, this is a test.", true)
+      summarize(message.text, true)
         .then(async streamResponse => {
           // Process the stream
           try {
             while (true) {
               
-              const chunk = await streamResponse.read();
-              console.log("Processing chunk...", chunk.text);
+              const { text, completed } = await streamResponse.read();
+              console.log("Processing chunk...", { text, completed });
               // Send the chunk to the content script
               browserAPI.tabs.sendMessage(message.tabId, {
                 action: "showResponse",
-                text: chunk.text,
+                text,
                 type: "summarize",
-                completed: chunk.completed
+                completed
               });
               
               // If this is the last chunk, break the loop
-              if (chunk.completed) {
+              if (completed) {
                 break;
               }
             }
-            sendResponse({ success: true });
           } catch (error) {
+            console.error(error);
             browserAPI.tabs.sendMessage(message.tabId, {
               action: "showError",
               error: error.toString()
             });
-            sendResponse({ success: false, error: error.toString() });
           }
         })
         .catch(error => {
@@ -149,7 +146,6 @@ browserAPI.runtime.onMessage.addListener((message, sender, sendResponse) => {
             action: "showError", 
             error: error.toString() 
           });
-          sendResponse({ success: false, error: error.toString() });
         });
     }
     
@@ -169,14 +165,12 @@ browserAPI.runtime.onMessage.addListener((message, sender, sendResponse) => {
             type: message.action === "askJulian" ? "ask" : "generate",
             completed: response.completed
           });
-          sendResponse({ success: true }); // Send response to keep promise alive
         })
         .catch(error => {
           browserAPI.tabs.sendMessage(message.tabId, { 
             action: "showError", 
             error: error.toString() 
           });
-          sendResponse({ success: false, error: error.toString() }); // Send response to keep promise alive
         });
     } else {
       // Streaming mode
@@ -200,13 +194,11 @@ browserAPI.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 break;
               }
             }
-            sendResponse({ success: true });
           } catch (error) {
             browserAPI.tabs.sendMessage(message.tabId, {
               action: "showError",
               error: error.toString()
             });
-            sendResponse({ success: false, error: error.toString() });
           }
         })
         .catch(error => {
@@ -214,11 +206,8 @@ browserAPI.runtime.onMessage.addListener((message, sender, sendResponse) => {
             action: "showError", 
             error: error.toString() 
           });
-          sendResponse({ success: false, error: error.toString() });
         });
     }
-    
-    return true; // Indicates async response
   }
   
   if (message.action === "getCurrentTabId") {

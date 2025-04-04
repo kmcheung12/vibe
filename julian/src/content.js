@@ -18,11 +18,12 @@ function initializeJulian() {
   createSidebar();
   
   // Listen for messages from background script
-  browserAPI.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  browserAPI.runtime.onMessage.addListener((message) => {
     console.log("Content received message from background: ", message);
     if (message.action === "summarize") {
+      showSidebar();
       const pageText = document.body.innerText;
-      responseBuffer = '';
+      resetResponseArea();
       browserAPI.runtime.sendMessage({
         action: "summarize",
         text: pageText,
@@ -30,10 +31,12 @@ function initializeJulian() {
         tabId: message.tabId
       });
     } else if (message.action === "askJulian") {
+      resetResponseArea();
       showSidebar();
       document.getElementById("julian-input").value = message.text;
-      document.getElementById("julian-submit").click();
+      document.getElementById("julian-ask").click();
     } else if (message.action === "generate") {
+      resetResponseArea();
       showSidebar();
       document.getElementById("julian-input").value = message.text;
       document.getElementById("julian-generate").click();
@@ -142,10 +145,10 @@ function createSidebar() {
     gap: 10px;
   `;
   
-  const submitButton = document.createElement("button");
-  submitButton.textContent = "Ask Julian";
-  submitButton.id = "julian-submit";
-  submitButton.style.cssText = `
+  const askButton = document.createElement("button");
+  askButton.textContent = "Ask Julian";
+  askButton.id = "julian-ask";
+  askButton.style.cssText = `
     padding: 8px 15px;
     background-color: #4a55af;
     color: white;
@@ -153,9 +156,10 @@ function createSidebar() {
     border-radius: 5px;
     cursor: pointer;
   `;
-  submitButton.onclick = () => {
+  askButton.onclick = () => {
     const text = document.getElementById("julian-input").value.trim();
     if (text) {
+      resetResponseArea();
       displayLoading();
       console.log("Asking Julian...");
       // Get the tab ID first, then send the message
@@ -183,15 +187,19 @@ function createSidebar() {
   summarizeButton.onclick = () => {
     displayLoading();
     console.log("Summarizing page...");
-    // Get the tab ID first, then send the message
-    getCurrentTabId().then(tabId => {
-      browserAPI.runtime.sendMessage({
-        action: "summarize",
-        text: document.body.innerText,
-        stream: true,
-        tabId: tabId
+    const text = document.getElementById("julian-input").value.trim();
+    if (text) {
+      resetResponseArea();
+      displayLoading();
+      getCurrentTabId().then(tabId => {
+        browserAPI.runtime.sendMessage({
+          action: "summarize",
+          text: text,
+          stream: true,
+          tabId: tabId
+        });
       });
-    });
+    }
   };
   
   const generateButton = document.createElement("button");
@@ -208,6 +216,7 @@ function createSidebar() {
   generateButton.onclick = () => {
     const text = document.getElementById("julian-input").value.trim();
     if (text) {
+      resetResponseArea();
       console.log("Generating text...");
       displayLoading();
       // Get the tab ID first, then send the message
@@ -222,7 +231,7 @@ function createSidebar() {
     }
   };
   
-  buttonContainer.appendChild(submitButton);
+  buttonContainer.appendChild(askButton);
   buttonContainer.appendChild(summarizeButton);
   buttonContainer.appendChild(generateButton);
   
@@ -302,6 +311,14 @@ function displayLoading() {
   `;
 }
 
+function resetResponseArea() {
+  const responseArea = document.getElementById("julian-response");
+  responseBuffer = '';
+  responseArea.innerHTML = `
+  <div>${formatResponse(responseBuffer)}</div>
+  <div class="streaming-indicator">Streaming...</div>
+`;
+}
 // Display response in the sidebar
 function displayResponse(text, type, completed = true) {
   const responseArea = document.getElementById("julian-response");

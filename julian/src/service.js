@@ -301,20 +301,22 @@ export async function summarize(text, stream = false) {
     .then(data => {
       // Process the response based on the provider type
       let result;
+      let completed = true;
       
       // Handle different response formats
       if (provider.id === "huggingface") {
         result = data[0]?.generated_text || data.generated_text || data;
       } else if (provider.id === "ollama") {
-        result = data.response || data;
+        result = data.response
+        completed = data.done;
       } else {
-        // Default handling for other providers
-        result = data.generated_text || data.response || data.output || data.text || data;
+        // throw error saying huggingface or ollama is required
+        throw new Error("Provider does not support streaming for now");
       }
       
       return { 
         text: result, 
-        completed: true 
+        completed 
       };
     });
   } else {
@@ -333,6 +335,7 @@ export async function summarize(text, stream = false) {
       
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
+      let buffer = ""; // Buffer to accumulate partial JSON chunks
       
       return {
         reader,
@@ -342,28 +345,84 @@ export async function summarize(text, stream = false) {
           const { done, value } = await reader.read();
           
           if (done) {
+            // If we have any remaining data in the buffer, try to process it
+            if (buffer.trim().length > 0) {
+              try {
+                const jsonData = JSON.parse(buffer);
+                const result = jsonData.response || "";
+                const finalCompleted = jsonData.done || true;
+                buffer = ""; // Clear the buffer
+                return { text: result, completed: finalCompleted };
+              } catch (e) {
+                // If we can't parse the buffer as JSON, just return it as-is
+                const finalText = buffer;
+                buffer = ""; // Clear the buffer
+                return { text: finalText, completed: true };
+              }
+            }
             return { text: "", completed: true };
           }
           
+          // Decode the chunk and add it to our buffer
           const chunk = decoder.decode(value, { stream: true });
-          let result;
+          buffer += chunk;
+          console.log("Buffer received chunk, now:", buffer);
           
+          // For NDJSON format, we need to look for complete lines
+          // Each line should be a complete JSON object
+          const lines = buffer.split('\n');
+          
+          // If we have at least one complete line (all but the last one)
+          if (lines.length > 1) {
+            // The last line might be incomplete, so we keep it in the buffer
+            const incompleteLine = lines.pop();
+            buffer = incompleteLine;
+            
+            // Process the last complete line (we'll process one line at a time)
+            const lastCompleteLine = lines[lines.length - 1].trim();
+            
+            if (lastCompleteLine) {
+              try {
+                const jsonData = JSON.parse(lastCompleteLine);
+                
+                // Handle different provider formats
+                if (provider.id === "ollama") {
+                  const result = jsonData.response || "";
+                  const completed = jsonData.done || false;
+                  return { text: result, completed: completed };
+                } else {
+                  throw new Error("Provider does not support streaming for now");
+                }
+              } catch (e) {
+                console.error("Error parsing JSON line:", e, lastCompleteLine);
+                // If we can't parse the line as JSON, return it as-is
+                return { text: lastCompleteLine, completed: false };
+              }
+            }
+          }
+          
+          // If we don't have any complete lines yet, or couldn't process them,
+          // try to parse the entire buffer as a single JSON object
           try {
-            // Try to parse JSON from the chunk
-            const jsonData = JSON.parse(chunk);
+            const jsonData = JSON.parse(buffer);
+            
+            // If we successfully parsed the buffer, clear it
+            buffer = "";
             
             // Handle different provider formats
             if (provider.id === "ollama") {
-              result = jsonData.response || "";
+              const result = jsonData.response || "";
+              const completed = jsonData.done || false;
+              return { text: result, completed: completed };
             } else {
-              result = jsonData.generated_text || jsonData.response || jsonData.output || jsonData.text || "";
+              throw new Error("Provider does not support streaming for now");
             }
           } catch (e) {
-            // If parsing fails, just use the raw chunk
-            result = chunk;
+            // If we can't parse the buffer as JSON, it's likely incomplete
+            // Return an empty result and wait for more data
+            console.log("Incomplete JSON, waiting for more data");
+            return { text: "", completed: false };
           }
-          
-          return { text: result, completed: false };
         }
       };
     });
