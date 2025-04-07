@@ -53,10 +53,9 @@ export const DEFAULT_SETTINGS = {
   ],
   currentProviderId: "ollama",
   promptRecipes: [
-    { name: "Ask Julian", prompt: "Answer the following question: {text}" },
-    { name: "Summarize Page", prompt: "Summarize the following text in a concise way: {text}" },
-    { name: "Generate Text", prompt: "Generate text based on: {text}" }
+    { id: "summarize", name: "Summarize Page", prompt: "Summarize the following article in the following format\n sentiment: {sentiment}\nTime to read: {}\nClick bait-ness: {N/5}\nFake news-ness: {N/5}. What sentiment is the article trying to present, answer the sentiment in one word. How much time is expected to read such article. Evaluate how likely the article is a click bait or fake news.\n ===== \n {text}" }
   ],
+  defaultRecipeId: 'summarize',
   generalSettings: {
     showSidebarToggle: true,
     autoShowSidebar: true

@@ -11,21 +11,9 @@ import { ask, summarize } from './service.js';
 // Create context menu items
 function createContextMenus() {
   browserAPI.contextMenus.create({
-    id: "askJulian",
-    title: "Ask Julian",
-    contexts: ["selection", "page"]
-  });
-
-  browserAPI.contextMenus.create({
     id: "summarize",
     title: "Summarize Page",
     contexts: ["page"]
-  });
-
-  browserAPI.contextMenus.create({
-    id: "generate",
-    title: "Generate with Julian",
-    contexts: ["selection", "page"]
   });
 
   browserAPI.contextMenus.create({
@@ -62,18 +50,8 @@ if (typeof browser !== 'undefined') {
 // Handle context menu clicks
 browserAPI.contextMenus.onClicked.addListener((info, tab) => {
   switch (info.menuItemId) {
-    case "askJulian":
-      if (info.selectionText) {
-        handleAskJulian(info.selectionText, tab.id);
-      }
-      break;
     case "summarize":
       browserAPI.tabs.sendMessage(tab.id, { action: "summarize", tabId: tab.id });
-      break;
-    case "generate":
-      if (info.selectionText) {
-        handleGenerate(info.selectionText, tab.id);
-      }
       break;
     case "copyMainText":
       browserAPI.tabs.sendMessage(tab.id, { action: "copyMainText", tabId: tab.id });
@@ -89,12 +67,8 @@ browserAPI.contextMenus.onClicked.addListener((info, tab) => {
 browserAPI.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log("Received message:", message);
   if (message.action === "summarize") {
-    const useStreaming = message.stream === true;
-    console.log(useStreaming);
-    if (!useStreaming) {
-
-      // Non-streaming mode
-      summarize(message.text, false)
+    if (!message.stream) {
+      summarize(message.text, message.stream)
         .then(response => {
           browserAPI.tabs.sendMessage(message.tabId, { 
             action: "showResponse", 
@@ -104,23 +78,18 @@ browserAPI.runtime.onMessage.addListener((message, sender, sendResponse) => {
           });
         })
         .catch(error => {
-          console.error(error);
           browserAPI.tabs.sendMessage(message.tabId, { 
             action: "showError", 
             error: error.toString() 
           });
         });
     } else {
-      // Streaming mode
-      summarize(message.text, true)
+      summarize(message.text, message.stream)
         .then(async streamResponse => {
-          // Process the stream
           try {
             while (true) {
-              
               const { text, completed } = await streamResponse.read();
               console.log("Processing chunk...", { text, completed });
-              // Send the chunk to the content script
               browserAPI.tabs.sendMessage(message.tabId, {
                 action: "showResponse",
                 text,
@@ -153,9 +122,8 @@ browserAPI.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
   
   if (message.action === "askJulian" || message.action === "generate") {
-    const useStreaming = message.stream === true;
     
-    if (!useStreaming) {
+    if (!message.stream) {
       // Non-streaming mode
       ask(message.text, false)
         .then(response => {
@@ -180,14 +148,6 @@ browserAPI.runtime.onMessage.addListener((message, sender, sendResponse) => {
           try {
             while (true) {
               const chunk = await streamResponse.read();
-              
-              // Send the chunk to the content script
-              browserAPI.tabs.sendMessage(message.tabId, {
-                action: "showResponse",
-                text: chunk.text,
-                type: message.action === "askJulian" ? "ask" : "generate",
-                completed: chunk.completed
-              });
               
               // If this is the last chunk, break the loop
               if (chunk.completed) {
@@ -236,46 +196,3 @@ browserAPI.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 });
-
-// Helper functions
-function handleAskJulian(text, tabId) {
-  browserAPI.tabs.sendMessage(tabId, { 
-    action: "askJulian", 
-    text: text,
-    tabId: tabId
-  });
-}
-
-function handleGenerate(text, tabId) {
-  browserAPI.tabs.sendMessage(tabId, { 
-    action: "generate", 
-    text: text,
-    tabId: tabId
-  });
-}
-
-function getDefaultConfig() {
-  return {
-    provider: "huggingface",
-    apiKey: "",
-    model: "facebook/bart-large-cnn"
-  };
-}
-
-// Update the last used timestamp for a provider
-function updateProviderLastUsed(providerId) {
-  getFromStorage(["providers"]).then(data => {
-    const providers = data.providers || DEFAULT_SETTINGS.providers;
-    
-    // Find the provider
-    const providerIndex = providers.findIndex(p => p.id === providerId);
-    
-    if (providerIndex >= 0) {
-      // Update the timestamp
-      providers[providerIndex].lastUsed = Date.now();
-      
-      // Save the updated data
-      setToStorage({ providers });
-    }
-  });
-}

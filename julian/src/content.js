@@ -145,95 +145,50 @@ function createSidebar() {
     gap: 10px;
   `;
   
-  const askButton = document.createElement("button");
-  askButton.textContent = "Ask Julian";
-  askButton.id = "julian-ask";
-  askButton.style.cssText = `
-    padding: 8px 15px;
-    background-color: #4a55af;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-  `;
-  askButton.onclick = () => {
-    const text = document.getElementById("julian-input").value.trim();
-    if (text) {
-      resetResponseArea();
-      displayLoading();
-      console.log("Asking Julian...");
-      // Get the tab ID first, then send the message
-      getCurrentTabId().then(tabId => {
-        browserAPI.runtime.sendMessage({
-          action: "askJulian",
-          text: text,
-          stream: true,
-          tabId: tabId
+  // Helper function to create buttons with consistent styling and behavior
+  function createActionButton(text, id, action) { 
+    const button = document.createElement("button");
+    button.textContent = text;
+    if (id) button.id = id;
+    
+    // Common button styling
+    button.style.cssText = `
+      padding: 8px 15px;
+      background-color: #4a55af;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    `;
+    
+    // Common click handler
+    button.onclick = () => {
+      const inputText = document.getElementById("julian-input").value.trim();
+      if (inputText) {
+        resetResponseArea();
+        displayLoading();
+        console.log(`${text}...`);
+        
+        getCurrentTabId().then(tabId => {
+          browserAPI.runtime.sendMessage({
+            action: action,
+            text: inputText,
+            stream: true,
+            tabId: tabId
+          });
         });
-      });
-    }
-  };
+      }
+    };
+    
+    return button;
+  }
   
-  const summarizeButton = document.createElement("button");
-  summarizeButton.textContent = "Summarize Page";
-  summarizeButton.style.cssText = `
-    padding: 8px 15px;
-    background-color: #4a55af;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-  `;
-  summarizeButton.onclick = () => {
-    displayLoading();
-    console.log("Summarizing page...");
-    const text = document.getElementById("julian-input").value.trim();
-    if (text) {
-      resetResponseArea();
-      displayLoading();
-      getCurrentTabId().then(tabId => {
-        browserAPI.runtime.sendMessage({
-          action: "summarize",
-          text: text,
-          stream: true,
-          tabId: tabId
-        });
-      });
-    }
-  };
+  // Create the three action buttons
+  const summarizeButton = createActionButton("Summarize Page", "julian-summarize", "summarize");
   
-  const generateButton = document.createElement("button");
-  generateButton.textContent = "Generate";
-  generateButton.id = "julian-generate";
-  generateButton.style.cssText = `
-    padding: 8px 15px;
-    background-color: #4a55af;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-  `;
-  generateButton.onclick = () => {
-    const text = document.getElementById("julian-input").value.trim();
-    if (text) {
-      resetResponseArea();
-      console.log("Generating text...");
-      displayLoading();
-      // Get the tab ID first, then send the message
-      getCurrentTabId().then(tabId => {
-        browserAPI.runtime.sendMessage({
-          action: "generate",
-          text: text,
-          stream: true,
-          tabId: tabId
-        });
-      });
-    }
-  };
-  
-  buttonContainer.appendChild(askButton);
+  // Add buttons to container
   buttonContainer.appendChild(summarizeButton);
-  buttonContainer.appendChild(generateButton);
+  
   
   inputArea.appendChild(textarea);
   inputArea.appendChild(buttonContainer);
@@ -389,10 +344,8 @@ function getCurrentTabId() {
 // Extract and copy main text in reader mode format
 function copyMainTextToClipboard(tabId) {
   try {
-    // Time how long it takes to extract main text
     const startTime = performance.now();
     console.log("Start copying main text to clipboard", startTime);
-    // Use Mozilla's Readability to extract main content
     const documentClone = document.cloneNode(true);
     const reader = new Readability(documentClone);
     const article = reader.parse();
@@ -401,19 +354,15 @@ function copyMainTextToClipboard(tabId) {
     if (!article) {
       throw new Error("Could not parse page content with Readability");
     }
-    
-    // Format the content for clipboard
+
     const title = article.title || document.title;
     const content = article.textContent || article.content;
     
-    // Format the text with title and content
     const formattedText = `${title}\n\n${content}`;
     
-    // Copy to clipboard
     navigator.clipboard.writeText(formattedText)
       .then(() => {
         console.log("Text copied to clipboard");
-        // Notify background script that text was copied
         browserAPI.runtime.sendMessage({
           action: "textCopied",
           text: formattedText,

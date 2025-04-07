@@ -276,7 +276,7 @@ export async function summarize(text, stream = false) {
   // Get prompt template for "Summarize Page"
   const prompt = await getPrompt(
     "Summarize Page", 
-    "Summarize the following text: {text}", 
+    "Summarize the following article in the following format\n sentiment: {sentiment}\nTime to read: {}\nClick bait-ness: {N/5}\nFake news-ness: {N/5}. Where N is a score from 1-5.\nWhat sentiment is the article trying to present, answer the sentiment in one word. How much time is expected to read such article. Evaluate how likely the article is a click bait or fake news.\n ===== \n {text}", 
     text
   );
   
