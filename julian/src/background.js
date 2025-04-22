@@ -2,11 +2,9 @@
 // Handles context menu creation and API calls
 
 // Import storage utilities
-import { browserAPI, getFromStorage, setToStorage } from './storage.js';
-// Import default settings
-import { DEFAULT_SETTINGS } from './defaults.js';
+import { browserAPI } from './storage.js';
 // Import service functions
-import { ask, summarize } from './service.js';
+import { summarize } from './service.js';
 
 // Create context menu items
 function createContextMenus() {
@@ -119,55 +117,6 @@ browserAPI.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
     
     return true; // Indicates async response
-  }
-  
-  if (message.action === "askJulian" || message.action === "generate") {
-    
-    if (!message.stream) {
-      // Non-streaming mode
-      ask(message.text, false)
-        .then(response => {
-          browserAPI.tabs.sendMessage(message.tabId, { 
-            action: "showResponse", 
-            text: response.text,
-            type: message.action === "askJulian" ? "ask" : "generate",
-            completed: response.completed
-          });
-        })
-        .catch(error => {
-          browserAPI.tabs.sendMessage(message.tabId, { 
-            action: "showError", 
-            error: error.toString() 
-          });
-        });
-    } else {
-      // Streaming mode
-      ask(message.text, true)
-        .then(async streamResponse => {
-          // Process the stream
-          try {
-            while (true) {
-              const chunk = await streamResponse.read();
-              
-              // If this is the last chunk, break the loop
-              if (chunk.completed) {
-                break;
-              }
-            }
-          } catch (error) {
-            browserAPI.tabs.sendMessage(message.tabId, {
-              action: "showError",
-              error: error.toString()
-            });
-          }
-        })
-        .catch(error => {
-          browserAPI.tabs.sendMessage(message.tabId, { 
-            action: "showError", 
-            error: error.toString() 
-          });
-        });
-    }
   }
   
   if (message.action === "getCurrentTabId") {
