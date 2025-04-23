@@ -7,6 +7,8 @@ const browserAPI = typeof browser !== 'undefined' ? browser : chrome;
 // Import Readability from Mozilla
 import { Readability } from '@mozilla/readability';
 
+const stream = true;
+const indicator = stream ? "Streaming..." : "Waiting...";
 // Create sidebar elements
 let sidebar = null;
 let sidebarVisible = false;
@@ -27,7 +29,7 @@ function initializeJulian() {
       browserAPI.runtime.sendMessage({
         action: "summarize",
         text: pageText,
-        stream: true,
+        stream,
         tabId: message.tabId
       });
     } else if (message.action === "askJulian") {
@@ -173,7 +175,7 @@ function createSidebar() {
           browserAPI.runtime.sendMessage({
             action: action,
             text: inputText,
-            stream: true,
+            stream,
             tabId: tabId
           });
         });
@@ -271,7 +273,7 @@ function resetResponseArea() {
   responseBuffer = '';
   responseArea.innerHTML = `
   <div>${formatResponse(responseBuffer)}</div>
-  <div class="streaming-indicator">Streaming...</div>
+  <div class="streaming-indicator">${indicator}</div>
 `;
 }
 // Display response in the sidebar
@@ -293,13 +295,12 @@ function displayResponse(text, type, completed = true) {
       title = "Response";
   }
   
+  responseBuffer += text;
   if (!completed) {
-    responseBuffer += text;
-    
     responseArea.innerHTML = `
       <h3 style="margin-top: 0; color: #4a55af;">${title}</h3>
       <div>${formatResponse(responseBuffer)}</div>
-      <div class="streaming-indicator">Streaming...</div>
+      <div class="streaming-indicator">${indicator}</div>
     `;
   } else {
     responseArea.innerHTML = `

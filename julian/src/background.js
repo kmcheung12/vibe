@@ -65,57 +65,39 @@ browserAPI.contextMenus.onClicked.addListener((info, tab) => {
 browserAPI.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log("Received message:", message);
   if (message.action === "summarize") {
-    if (!message.stream) {
-      summarize(message.text, message.stream)
-        .then(response => {
-          browserAPI.tabs.sendMessage(message.tabId, { 
-            action: "showResponse", 
-            text: response.text,
-            type: "summarize",
-            completed: response.completed
-          });
-        })
-        .catch(error => {
-          browserAPI.tabs.sendMessage(message.tabId, { 
-            action: "showError", 
-            error: error.toString() 
-          });
-        });
-    } else {
-      summarize(message.text, message.stream)
-        .then(async streamResponse => {
-          try {
-            while (true) {
-              const { text, completed } = await streamResponse.read();
-              console.log("Processing chunk...", { text, completed });
-              browserAPI.tabs.sendMessage(message.tabId, {
-                action: "showResponse",
-                text,
-                type: "summarize",
-                completed
-              });
-              
-              // If this is the last chunk, break the loop
-              if (completed) {
-                break;
-              }
-            }
-          } catch (error) {
-            console.error(error);
+    summarize(message.text, message.stream)
+      .then(async streamResponse => {
+        try {
+          while (true) {
+            const { text, completed } = await streamResponse.read();
+            console.log("Processing chunk...", { text, completed });
             browserAPI.tabs.sendMessage(message.tabId, {
-              action: "showError",
-              error: error.toString()
+              action: "showResponse",
+              text,
+              type: "summarize",
+              completed
             });
+            
+            // If this is the last chunk, break the loop
+            if (completed) {
+              break;
+            }
           }
-        })
-        .catch(error => {
-          browserAPI.tabs.sendMessage(message.tabId, { 
-            action: "showError", 
-            error: error.toString() 
+        } catch (error) {
+          console.error(error);
+          browserAPI.tabs.sendMessage(message.tabId, {
+            action: "showError",
+            error: error.toString()
           });
+        }
+      })
+      .catch(error => {
+        browserAPI.tabs.sendMessage(message.tabId, { 
+          action: "showError", 
+          error: error.toString() 
         });
-    }
-    
+      });
+
     return true; // Indicates async response
   }
   

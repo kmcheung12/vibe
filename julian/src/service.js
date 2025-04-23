@@ -160,99 +160,6 @@ export async function ping(stream = false) {
  * @param {boolean} stream - Whether to use streaming mode
  * @returns {Promise<Object>} The AI response with completion status
  */
-export async function ask(question, stream = false) {
-  const provider = await getCurrentProvider();
-  updateProviderLastUsed(provider.id);
-  
-  const headers = prepareHeaders(provider);
-  const requestBody = prepareBody(provider, prompt, stream);
-  
-  if (!stream) {
-    // Non-streaming mode - return full response at once
-    return fetch(provider.apiUrl, {
-      method: provider.schema.method || "POST",
-      headers: headers,
-      body: JSON.stringify(requestBody)
-    })
-    .then(response => {
-      if (!response.ok) {
-        return response.text().then(text => {
-          throw new Error(`API request failed: ${response.status} ${response.statusText} - ${text}`);
-        });
-      }
-      return response.json();
-    })
-    .then(data => {
-      // Process the response based on the provider type
-      let result;
-      
-      // Handle different response formats
-      if (provider.id === "huggingface") {
-        result = data[0]?.generated_text || data.generated_text || data;
-      } else if (provider.id === "ollama") {
-        result = data.response || data;
-      } else {
-        // Default handling for other providers
-        result = data.message.content || data.response || data;
-      }
-      
-      return { 
-        text: result, 
-        completed: true 
-      };
-    });
-  } else {
-    // Streaming mode - return a reader that emits events
-    return fetch(provider.apiUrl, {
-      method: provider.schema.method || "POST",
-      headers: headers,
-      body: JSON.stringify(requestBody)
-    })
-    .then(response => {
-      if (!response.ok) {
-        return response.text().then(text => {
-          throw new Error(`API request failed: ${response.status} ${response.statusText} - ${text}`);
-        });
-      }
-      
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      
-      return {
-        reader,
-        decoder,
-        provider,
-        read: async function() {
-          const { done, value } = await reader.read();
-          
-          if (done) {
-            return { text: "", completed: true };
-          }
-          
-          const chunk = decoder.decode(value, { stream: true });
-          let result;
-          
-          try {
-            // Try to parse JSON from the chunk
-            const data = JSON.parse(chunk);
-            
-            // Handle different provider formats
-            if (provider.id === "ollama") {
-              result = data.response || "";
-            } else {
-              result = data.message.content || data.response|| "";
-            }
-          } catch (e) {
-            // If parsing fails, just use the raw chunk
-            result = chunk;
-          }
-          
-          return { text: result, completed: false };
-        }
-      };
-    });
-  }
-}
 
 /**
  * Sends a text to be summarized by the AI provider
@@ -273,148 +180,112 @@ export async function summarize(text, stream = false) {
   const headers = prepareHeaders(provider);
   const requestBody = prepareBody(provider, prompt, stream);
   console.log("service.js", headers, requestBody, stream);
-  if (!stream) {
-    // Non-streaming mode - return full response at once
-    return fetch(provider.apiUrl, {
-      method: provider.schema.method || "POST",
-      headers: headers,
-      body: JSON.stringify(requestBody)
-    })
-    .then(response => {
-      if (!response.ok) {
-        return response.text().then(text => {
-          throw new Error(`API request failed: ${response.status} ${response.statusText} - ${text}`);
-        });
-      }
-      return response.json();
-    })
-    .then(data => {
-      // Process the response based on the provider type
-      let result;
-      let completed = true;
-      
-      // Handle different response formats
-      if (provider.id === "huggingface") {
-        result = data[0]?.generated_text || data.generated_text || data;
-      } else if (provider.id === "ollama") {
-        result = data.response
-        completed = data.done;
-      } else {
-        // throw error saying huggingface or ollama is required
-        throw new Error("Provider does not support streaming for now");
-      }
-      
-      return { 
-        text: result, 
-        completed 
-      };
-    });
-  } else {
-    // Streaming mode - return a reader that emits events
-    return fetch(provider.apiUrl, {
-      method: provider.schema.method || "POST",
-      headers: headers,
-      body: JSON.stringify(requestBody)
-    })
-    .then(response => {
-      if (!response.ok) {
-        return response.text().then(text => {
-          throw new Error(`API request failed: ${response.status} ${response.statusText} - ${text}`);
-        });
-      }
-      
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = ""; // Buffer to accumulate partial JSON chunks
-      
-      return {
-        reader,
-        decoder,
-        provider,
-        read: async function() {
-          const { done, value } = await reader.read();
-          
-          if (done) {
-            // If we have any remaining data in the buffer, try to process it
-            if (buffer.trim().length > 0) {
-              try {
-                const data = JSON.parse(buffer);
-                const result = data.message.content || data.response || "";
-                const finalCompleted = data.done || true;
-                buffer = ""; // Clear the buffer
-                return { text: result, completed: finalCompleted };
-              } catch (e) {
-                // If we can't parse the buffer as JSON, just return it as-is
-                const finalText = buffer;
-                buffer = ""; // Clear the buffer
-                return { text: finalText, completed: true };
-              }
-            }
-            return { text: "", completed: true };
-          }
-          
-          // Decode the chunk and add it to our buffer
-          const chunk = decoder.decode(value, { stream: true });
-          buffer += chunk;
-          console.log("Buffer received chunk, now:", buffer);
-          
-          // For NDJSON format, we need to look for complete lines
-          // Each line should be a complete JSON object
-          const lines = buffer.split('\n');
-          
-          // If we have at least one complete line (all but the last one)
-          if (lines.length > 1) {
-            // The last line might be incomplete, so we keep it in the buffer
-            const incompleteLine = lines.pop();
-            buffer = incompleteLine;
-            
-            // Process the last complete line (we'll process one line at a time)
-            const lastCompleteLine = lines[lines.length - 1].trim();
-            
-            if (lastCompleteLine) {
-              try {
-                const data = JSON.parse(lastCompleteLine);
-                
-                // Handle different provider formats
-                if (provider.id === "ollama") {
-                  const result = data.message.content || data.response || "";
-                  const completed = data.done || false;
-                  return { text: result, completed: completed };
-                } else {
-                  throw new Error("Provider does not support streaming for now");
-                }
-              } catch (e) {
-                console.error("Error parsing JSON line:", e, lastCompleteLine);
-                // If we can't parse the line as JSON, return it as-is
-                return { text: lastCompleteLine, completed: false };
-              }
-            }
-          }
-          
-          // If we don't have any complete lines yet, or couldn't process them,
-          // try to parse the entire buffer as a single JSON object
-          try {
-            const data = JSON.parse(buffer);
-            
-            // If we successfully parsed the buffer, clear it
-            buffer = "";
-            
-            // Handle different provider formats
-            if (provider.id === "ollama") {
+  
+  return fetch(provider.apiUrl, {
+    method: provider.schema.method || "POST",
+    headers: headers,
+    body: JSON.stringify(requestBody)
+  })
+  .then(response => {
+    if (!response.ok) {
+      return response.text().then(text => {
+        throw new Error(`API request failed: ${response.status} ${response.statusText} - ${text}`);
+      });
+    }
+    return response;
+  })
+  .then(response => {
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    
+    return {
+      reader,
+      decoder,
+      provider,
+      read: async function() {
+        const { done, value } = await reader.read();
+        
+        if (done) {
+          // If we have any remaining data in the buffer, try to process it
+          if (buffer.trim().length > 0) {
+            try {
+              const data = JSON.parse(buffer);
               const result = data.message.content || data.response || "";
-              const completed = data.done || false;
-              return { text: result, completed: completed };
-            } else {
-              throw new Error("Provider does not support streaming for now");
+              const finalCompleted = data.done || true;
+              buffer = ""; // Clear the buffer
+              return { text: result, completed: finalCompleted };
+            } catch (e) {
+              // If we can't parse the buffer as JSON, just return it as-is
+              const finalText = buffer;
+              buffer = ""; // Clear the buffer
+              return { text: finalText, completed: true };
             }
-          } catch (e) {
-            // If we can't parse the buffer as JSON, it's likely incomplete
-            // Return an empty result and wait for more data
-            console.log("Incomplete JSON, waiting for more data");
-            return { text: "", completed: false };
+          }
+          return { text: "", completed: true };
+        }
+        
+        // Decode the chunk and add it to our buffer
+        const chunk = decoder.decode(value, { stream: true });
+        buffer += chunk;
+        console.log("Buffer received chunk, now:", buffer);
+        
+        // For NDJSON format, we need to look for complete lines
+        // Each line should be a complete JSON object
+        const lines = buffer.split('\n');
+        
+        // If we have at least one complete line (all but the last one)
+        if (lines.length > 1) {
+          // The last line might be incomplete, so we keep it in the buffer
+          const incompleteLine = lines.pop();
+          buffer = incompleteLine;
+          
+          // Process the last complete line (we'll process one line at a time)
+          const lastCompleteLine = lines[lines.length - 1].trim();
+          
+          if (lastCompleteLine) {
+            try {
+              const data = JSON.parse(lastCompleteLine);
+              
+              // Handle different provider formats
+              if (provider.id === "ollama") {
+                const result = data.message.content || data.response || "";
+                const completed = data.done || false;
+                return { text: result, completed: completed };
+              } else {
+                throw new Error("Provider does not support streaming for now");
+              }
+            } catch (e) {
+              console.error("Error parsing JSON line:", e, lastCompleteLine);
+              // If we can't parse the line as JSON, return it as-is
+              return { text: lastCompleteLine, completed: false };
+            }
           }
         }
-      };
-    });
-  }
+        
+        // If we don't have any complete lines yet, or couldn't process them,
+        // try to parse the entire buffer as a single JSON object
+        try {
+          const data = JSON.parse(buffer);
+          
+          // If we successfully parsed the buffer, clear it
+          buffer = "";
+          
+          // Handle different provider formats
+          if (provider.id === "ollama") {
+            const result = data.message.content || data.response || "";
+            const completed = data.done || false;
+            return { text: result, completed: completed };
+          } else {
+            throw new Error("Provider does not support streaming for now");
+          }
+        } catch (e) {
+          // If we can't parse the buffer as JSON, it's likely incomplete
+          // Return an empty result and wait for more data
+          console.log("Incomplete JSON, waiting for more data");
+          return { text: "", completed: false };
+        }
+      }
+    };
+  });
 }
