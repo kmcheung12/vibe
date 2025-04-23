@@ -29,7 +29,7 @@
   "options_page": "src/options.html",
   "web_accessible_resources": [
     {
-      "resources": ["src/options.js"],
+      "resources": ["src/options.js", "src/chat.html"],
       "matches": ["<all_urls>"]
     }
   ],

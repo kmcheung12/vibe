@@ -155,13 +155,6 @@ export async function ping(stream = false) {
 }
 
 /**
- * Sends a question to the AI provider
- * @param {string} question - The question to ask
- * @param {boolean} stream - Whether to use streaming mode
- * @returns {Promise<Object>} The AI response with completion status
- */
-
-/**
  * Sends a text to be summarized by the AI provider
  * @param {string} text - The text to summarize
  * @param {boolean} stream - Whether to use streaming mode
@@ -240,6 +233,7 @@ export async function summarize(text, stream = false) {
           const incompleteLine = lines.pop();
           buffer = incompleteLine;
           
+          console.log("Lines: ", lines);
           // Process the last complete line (we'll process one line at a time)
           const lastCompleteLine = lines[lines.length - 1].trim();
           
@@ -266,6 +260,7 @@ export async function summarize(text, stream = false) {
         // If we don't have any complete lines yet, or couldn't process them,
         // try to parse the entire buffer as a single JSON object
         try {
+          console.log("Parsing incomplete buffer:" , buffer);
           const data = JSON.parse(buffer);
           
           // If we successfully parsed the buffer, clear it

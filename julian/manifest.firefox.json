@@ -28,7 +28,8 @@
     "open_in_tab": true
   },
   "web_accessible_resources": [
-    "src/options.js"
+    "src/options.js",
+    "src/chat.html"
   ],
   "browser_action": {
     "default_icon": {

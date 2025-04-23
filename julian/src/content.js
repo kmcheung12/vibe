@@ -32,16 +32,6 @@ function initializeJulian() {
         stream,
         tabId: message.tabId
       });
-    } else if (message.action === "askJulian") {
-      resetResponseArea();
-      showSidebar();
-      document.getElementById("julian-input").value = message.text;
-      document.getElementById("julian-ask").click();
-    } else if (message.action === "generate") {
-      resetResponseArea();
-      showSidebar();
-      document.getElementById("julian-input").value = message.text;
-      document.getElementById("julian-generate").click();
     } else if (message.action === "showResponse") {
       showSidebar();
       displayResponse(message.text, message.type, message.completed);
@@ -89,6 +79,29 @@ function createSidebar() {
   title.textContent = "Julian";
   title.style.margin = "0";
   
+  const openConversationButton = document.createElement("button");
+  openConversationButton.title = "Open conversation in new window";
+  openConversationButton.innerHTML = `
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M6 2H14V10M14 2L6 10" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M14 6V2H10" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  `;
+  openConversationButton.style.cssText = `
+    background: none;
+    border: none;
+    color: white;
+    padding: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 8px;
+  `;
+  openConversationButton.onclick = () => {
+    window.open(browserAPI.runtime.getURL('src/chat.html'), '_blank');
+  };
+
   const closeButton = document.createElement("button");
   closeButton.textContent = "×";
   closeButton.style.cssText = `
@@ -100,8 +113,17 @@ function createSidebar() {
   `;
   closeButton.onclick = hideSidebar;
   
+  const headerButtons = document.createElement("div");
+  headerButtons.style.cssText = `
+    display: flex;
+    align-items: center;
+  `;
+  
+  headerButtons.appendChild(openConversationButton);
+  headerButtons.appendChild(closeButton);
+  
   header.appendChild(title);
-  header.appendChild(closeButton);
+  header.appendChild(headerButtons);
   
   const content = document.createElement("div");
   content.style.cssText = `
@@ -131,7 +153,7 @@ function createSidebar() {
   
   const textarea = document.createElement("textarea");
   textarea.id = "julian-input";
-  textarea.placeholder = "Ask Julian something...";
+  textarea.placeholder = "Ask Julian anything...";
   textarea.style.cssText = `
     width: 100%;
     height: 100px;
@@ -185,7 +207,6 @@ function createSidebar() {
     return button;
   }
   
-  // Create the three action buttons
   const summarizeButton = createActionButton("Summarize Page", "julian-summarize", "summarize");
   
   // Add buttons to container
@@ -204,10 +225,10 @@ function createSidebar() {
   document.body.appendChild(sidebar);
   
   // Add toggle button to the page
-  const toggleButton = document.createElement("button");
-  toggleButton.id = "julian-toggle";
-  toggleButton.textContent = "J";
-  toggleButton.style.cssText = `
+  const widgetButton = document.createElement("button");
+  widgetButton.id = "julian-widget";
+  widgetButton.textContent = "J";
+  widgetButton.style.cssText = `
     position: fixed;
     bottom: 20px;
     right: 20px;
@@ -223,9 +244,9 @@ function createSidebar() {
     cursor: pointer;
     z-index: 9998;
   `;
-  toggleButton.onclick = toggleSidebar;
+  widgetButton.onclick = toggleSidebar;
   
-  document.body.appendChild(toggleButton);
+  document.body.appendChild(widgetButton);
 }
 
 // Show the sidebar
@@ -287,9 +308,6 @@ function displayResponse(text, type, completed = true) {
       break;
     case "askJulian":
       title = "Julian's Answer";
-      break;
-    case "generate":
-      title = "Generated Text";
       break;
     default:
       title = "Response";
