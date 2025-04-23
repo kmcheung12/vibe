@@ -95,14 +95,13 @@ function prepareBody(provider, prompt, stream = false) {
 /**
  * Retrieves prompts from storage
  * @param {string} recipeName - The name of the prompt recipe
- * @param {string} defaultPrompt - The default prompt if recipe not found
  * @param {string} text - The text to insert into the prompt
  * @returns {Promise<string>} The prepared prompt
  */
-export async function getPrompt(recipeName, defaultPrompt, text) {
+export async function getPrompt(recipeName, text) {
   const data = await getFromStorage(["promptRecipes"]);
   const recipe = data.promptRecipes?.find(r => r.name === recipeName) || 
-                { prompt: defaultPrompt };
+                { prompt: `${recipeName}: {text}` };
   return recipe.prompt.replace("{text}", text);
 }
 
@@ -165,13 +164,6 @@ export async function ask(question, stream = false) {
   const provider = await getCurrentProvider();
   updateProviderLastUsed(provider.id);
   
-  // Get prompt template for "Ask Julian"
-  const prompt = await getPrompt(
-    "Ask Julian", 
-    "Answer the following question: {text}", 
-    question
-  );
-  
   const headers = prepareHeaders(provider);
   const requestBody = prepareBody(provider, prompt, stream);
   
@@ -201,7 +193,7 @@ export async function ask(question, stream = false) {
         result = data.response || data;
       } else {
         // Default handling for other providers
-        result = data.generated_text || data.response || data.output || data.text || data;
+        result = data.message.content || data.response || data;
       }
       
       return { 
@@ -242,13 +234,13 @@ export async function ask(question, stream = false) {
           
           try {
             // Try to parse JSON from the chunk
-            const jsonData = JSON.parse(chunk);
+            const data = JSON.parse(chunk);
             
             // Handle different provider formats
             if (provider.id === "ollama") {
-              result = jsonData.response || "";
+              result = data.response || "";
             } else {
-              result = jsonData.generated_text || jsonData.response || jsonData.output || jsonData.text || "";
+              result = data.message.content || data.response|| "";
             }
           } catch (e) {
             // If parsing fails, just use the raw chunk
@@ -275,11 +267,9 @@ export async function summarize(text, stream = false) {
   
   // Get prompt template for "Summarize Page"
   const prompt = await getPrompt(
-    "Summarize Page", 
-    "Summarize the following article in the following format\n sentiment: {sentiment}\nTime to read: {}\nClick bait-ness: {N/5}\nFake news-ness: {N/5}. Where N is a score from 1-5.\nWhat sentiment is the article trying to present, answer the sentiment in one word. How much time is expected to read such article. Evaluate how likely the article is a click bait or fake news.\n ===== \n {text}", 
+    "Summarize Page",     
     text
   );
-  
   const headers = prepareHeaders(provider);
   const requestBody = prepareBody(provider, prompt, stream);
   console.log("service.js", headers, requestBody, stream);
@@ -348,9 +338,9 @@ export async function summarize(text, stream = false) {
             // If we have any remaining data in the buffer, try to process it
             if (buffer.trim().length > 0) {
               try {
-                const jsonData = JSON.parse(buffer);
-                const result = jsonData.response || "";
-                const finalCompleted = jsonData.done || true;
+                const data = JSON.parse(buffer);
+                const result = data.message.content || data.response || "";
+                const finalCompleted = data.done || true;
                 buffer = ""; // Clear the buffer
                 return { text: result, completed: finalCompleted };
               } catch (e) {
@@ -383,12 +373,12 @@ export async function summarize(text, stream = false) {
             
             if (lastCompleteLine) {
               try {
-                const jsonData = JSON.parse(lastCompleteLine);
+                const data = JSON.parse(lastCompleteLine);
                 
                 // Handle different provider formats
                 if (provider.id === "ollama") {
-                  const result = jsonData.response || "";
-                  const completed = jsonData.done || false;
+                  const result = data.message.content || data.response || "";
+                  const completed = data.done || false;
                   return { text: result, completed: completed };
                 } else {
                   throw new Error("Provider does not support streaming for now");
@@ -404,15 +394,15 @@ export async function summarize(text, stream = false) {
           // If we don't have any complete lines yet, or couldn't process them,
           // try to parse the entire buffer as a single JSON object
           try {
-            const jsonData = JSON.parse(buffer);
+            const data = JSON.parse(buffer);
             
             // If we successfully parsed the buffer, clear it
             buffer = "";
             
             // Handle different provider formats
             if (provider.id === "ollama") {
-              const result = jsonData.response || "";
-              const completed = jsonData.done || false;
+              const result = data.message.content || data.response || "";
+              const completed = data.done || false;
               return { text: result, completed: completed };
             } else {
               throw new Error("Provider does not support streaming for now");
